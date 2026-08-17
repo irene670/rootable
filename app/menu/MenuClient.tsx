@@ -13,10 +13,14 @@ const products = [
   { id: "pudding", name: "焦糖昭和布丁", description: "雞蛋、鮮奶與微苦焦糖", price: 120, category: "甜點", art: "art-pudding" },
 ];
 
+const categories = ["全部", "主餐", "飲品", "甜點"];
+
 type Cart = Record<string, number>;
 type PaymentMethod = "cash" | "rootable_pay";
 type PaymentChannel = "cash" | "line_pay" | "apple_pay";
 type CreatedOrder = { orderNo: string; tableNo: string; subtotal: number; paymentStatus: string };
+
+const money = (value: number) => `NT$ ${value.toLocaleString("zh-TW")}`;
 
 export default function MenuClient() {
   const [category, setCategory] = useState("全部");
@@ -31,55 +35,74 @@ export default function MenuClient() {
   const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null);
 
   const visibleProducts = category === "全部" ? products : products.filter((product) => product.category === category);
-  const items = useMemo(() => products.filter((p) => cart[p.id]).map((p) => ({ ...p, quantity: cart[p.id] })), [cart]);
+  const items = useMemo(() => products.filter((product) => cart[product.id]).map((product) => ({ ...product, quantity: cart[product.id] })), [cart]);
   const count = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
 
-  const changeQuantity = (id: string, delta: number) => setCart((current) => {
-    const next = Math.max(0, (current[id] || 0) + delta);
-    const updated = { ...current, [id]: next };
-    if (!next) delete updated[id];
-    return updated;
-  });
+  const changeQuantity = (id: string, delta: number) => {
+    if (step === "checkout" && delta < 0 && count === 1 && cart[id] === 1) setStep("menu");
+    setCart((current) => {
+      const next = Math.max(0, (current[id] || 0) + delta);
+      const updated = { ...current, [id]: next };
+      if (!next) delete updated[id];
+      return updated;
+    });
+  };
 
   const choosePayment = (method: PaymentMethod, channel: PaymentChannel) => {
-    setPaymentMethod(method); setPaymentChannel(channel); setError("");
+    setPaymentMethod(method);
+    setPaymentChannel(channel);
+    setError("");
   };
 
   const submitOrder = async () => {
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
       const response = await fetch("/api/orders", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          storeId: "senri-demo", tableNo, paymentMethod, paymentChannel, customerNote: note,
+          storeId: "senri-demo",
+          tableNo,
+          paymentMethod,
+          paymentChannel,
+          customerNote: note,
           items: items.map((item) => ({ productId: item.id, productName: item.name, quantity: item.quantity, unitPrice: item.price })),
         }),
       });
       const result = await response.json() as { order?: CreatedOrder; error?: string };
       if (!response.ok || !result.order) throw new Error(result.error || "訂單送出失敗");
-      setCreatedOrder(result.order); setStep("success");
+      setCreatedOrder(result.order);
+      setStep("success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "連線失敗，請再試一次");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (step === "success" && createdOrder) {
     return (
-      <main className="order-success-page">
-        <section className="success-card" aria-live="polite">
-          <div className="success-seal" aria-hidden="true">✓</div>
-          <p className="eyebrow">訂單已送到店家平板</p>
-          <h1>收到，我們開始準備了。</h1>
-          <p className="success-number">取餐序號 <b>{createdOrder.orderNo}</b></p>
-          <div className="success-meta">
-            <span><small>桌號</small><b>{createdOrder.tableNo}</b></span>
-            <span><small>金額</small><b>NT$ {createdOrder.subtotal}</b></span>
-            <span><small>付款</small><b>{createdOrder.paymentStatus === "paid" ? "已完成（模擬）" : "現場付現"}</b></span>
+      <main className="customer-app-shell success-shell">
+        <section className="customer-app order-success-page" aria-live="polite">
+          <div className="success-card">
+            <div className="success-seal" aria-hidden="true">✓</div>
+            <p className="customer-kicker">訂單已送出</p>
+            <h1>店家收到囉！</h1>
+            <p className="success-help">請留意取餐通知，並保留這個畫面。</p>
+            <div className="pickup-ticket">
+              <span>取餐序號</span>
+              <strong>{createdOrder.orderNo}</strong>
+            </div>
+            <dl className="success-meta">
+              <div><dt>桌號</dt><dd>{createdOrder.tableNo}</dd></div>
+              <div><dt>金額</dt><dd>{money(createdOrder.subtotal)}</dd></div>
+              <div><dt>付款</dt><dd>{createdOrder.paymentStatus === "paid" ? "模擬付款完成" : "到店付現"}</dd></div>
+            </dl>
+            <p className="demo-notice">試營運模擬付款，不會產生真實扣款。</p>
+            <button className="customer-primary-action" onClick={() => { setCart({}); setStep("menu"); setCreatedOrder(null); }}>繼續看菜單</button>
           </div>
-          <p className="demo-notice">這是試營運模擬付款，不會產生真實扣款。</p>
-          <a className="button button-primary" href="/merchant">到店家平板查看訂單</a>
-          <button className="text-button" onClick={() => { setCart({}); setStep("menu"); setCreatedOrder(null); }}>再下一筆訂單</button>
         </section>
       </main>
     );
@@ -87,56 +110,138 @@ export default function MenuClient() {
 
   if (step === "checkout") {
     return (
-      <main className="checkout-page">
-        <header className="mobile-topbar"><button className="back-button" onClick={() => setStep("menu")}>返回菜單</button><b>確認訂單</b><span /></header>
-        <div className="checkout-layout">
-          <section className="checkout-main">
-            <div className="checkout-heading"><p className="eyebrow">森日小館</p><h1>選擇付款方式</h1><p>顧客不加價；代支付手續費由店家負擔。</p></div>
-            <div className="field-group">
-              <label htmlFor="tableNo">桌號或取餐名稱</label>
-              <input id="tableNo" value={tableNo} onChange={(event) => setTableNo(event.target.value)} maxLength={12} />
-            </div>
-            <fieldset className="payment-options">
+      <main className="customer-app-shell checkout-shell">
+        <section className="customer-app checkout-page">
+          <header className="customer-step-header">
+            <button className="back-button" onClick={() => setStep("menu")} aria-label="返回菜單">返回</button>
+            <div><b>確認訂單</b><span>第 2 步，共 2 步</span></div>
+            <span className="step-count">{count} 份</span>
+          </header>
+
+          <div className="checkout-content">
+            <section className="checkout-block" aria-labelledby="order-review-title">
+              <div className="checkout-block-title"><h1 id="order-review-title">訂單內容</h1><span>{money(subtotal)}</span></div>
+              <div className="checkout-items">
+                {items.map((item) => (
+                  <article className="checkout-item" key={item.id}>
+                    <div><h2>{item.name}</h2><p>{money(item.price)}</p></div>
+                    <div className="qty-control" aria-label={`${item.name}數量`}>
+                      <button onClick={() => changeQuantity(item.id, -1)} aria-label={`減少${item.name}`}>−</button>
+                      <span>{item.quantity}</span>
+                      <button onClick={() => changeQuantity(item.id, 1)} aria-label={`增加${item.name}`}>＋</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="checkout-block" aria-labelledby="dining-info-title">
+              <h2 id="dining-info-title">用餐資訊</h2>
+              <div className="field-group compact-field">
+                <label htmlFor="tableNo">桌號或取餐名稱</label>
+                <input id="tableNo" value={tableNo} onChange={(event) => setTableNo(event.target.value)} maxLength={12} autoComplete="off" />
+              </div>
+              <div className="field-group compact-field">
+                <label htmlFor="note">餐點備註 <span>選填</span></label>
+                <textarea id="note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="例如：不要香菜、飯少一點" maxLength={80} />
+                <small>{note.length}/80</small>
+              </div>
+            </section>
+
+            <fieldset className="checkout-block payment-options">
               <legend>付款方式</legend>
+              <p className="payment-helper">顧客不加價，代支付手續費由店家負擔。</p>
               <button className={`payment-option ${paymentMethod === "cash" ? "selected" : ""}`} onClick={() => choosePayment("cash", "cash")} aria-pressed={paymentMethod === "cash"}>
-                <span><b>到店付現</b><small>下單後到櫃台支付現金</small></span><strong>0 元加價</strong>
+                <span className="payment-radio" aria-hidden="true" />
+                <span><b>到店付現</b><small>送出後至櫃台支付現金</small></span>
+                <strong>免手續費</strong>
               </button>
               <button className={`payment-option ${paymentChannel === "line_pay" ? "selected" : ""}`} onClick={() => choosePayment("rootable_pay", "line_pay")} aria-pressed={paymentChannel === "line_pay"}>
-                <span><b>LINE Pay</b><small>Rootable 代支付・模擬流程</small></span><strong>立即付款</strong>
+                <span className="payment-radio" aria-hidden="true" />
+                <span><b>LINE Pay</b><small>Rootable 代支付・模擬</small></span>
+                <strong>立即付款</strong>
               </button>
               <button className={`payment-option ${paymentChannel === "apple_pay" ? "selected" : ""}`} onClick={() => choosePayment("rootable_pay", "apple_pay")} aria-pressed={paymentChannel === "apple_pay"}>
-                <span><b>Apple Pay</b><small>Rootable 代支付・模擬流程</small></span><strong>快速確認</strong>
+                <span className="payment-radio" aria-hidden="true" />
+                <span><b>Apple Pay</b><small>Rootable 代支付・模擬</small></span>
+                <strong>快速確認</strong>
               </button>
             </fieldset>
-            <div className="field-group"><label htmlFor="note">給店家的備註（選填）</label><textarea id="note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="例如：不要香菜" maxLength={80} /></div>
-          </section>
-          <aside className="checkout-summary">
-            <h2>訂單內容</h2>
-            {items.map((item) => <div className="summary-item" key={item.id}><span>{item.name}<small>{item.quantity} × NT$ {item.price}</small></span><b>NT$ {item.quantity * item.price}</b></div>)}
-            <div className="summary-total"><span>合計</span><b>NT$ {subtotal}</b></div>
+
             {error && <p className="form-error" role="alert">{error}</p>}
-            <button className="button button-primary checkout-submit" onClick={submitOrder} disabled={loading || !tableNo.trim()}>
-              {loading ? "正在送出…" : paymentMethod === "cash" ? "送出訂單・現場付現" : `模擬支付 NT$ ${subtotal}`}
+          </div>
+
+          <footer className="checkout-footer">
+            <div><span>應付金額</span><strong>{money(subtotal)}</strong></div>
+            <button onClick={submitOrder} disabled={loading || !tableNo.trim()}>
+              {loading ? "正在送出訂單…" : paymentMethod === "cash" ? "送出訂單" : `模擬支付 ${money(subtotal)}`}
             </button>
-            <p className="secure-note">試營運階段不會產生真實扣款或撥款。</p>
-          </aside>
-        </div>
+            <p>送出即代表確認餐點內容；模擬付款不會扣款。</p>
+          </footer>
+        </section>
       </main>
     );
   }
 
   return (
-    <main className="menu-page">
-      <header className="menu-hero"><a className="mini-brand" href="/">Rootable 森根</a><div><p className="eyebrow">Rootable 店家</p><h1>森日小館</h1><p>高雄鹽埕・日常定食與咖啡</p></div><div className="table-chip">桌號 <b>A03</b></div></header>
-      <nav className="category-tabs" aria-label="菜單分類">{["全部", "主餐", "飲品", "甜點"].map((item) => <button className={category === item ? "active" : ""} onClick={() => setCategory(item)} key={item}>{item}</button>)}</nav>
-      <section className="menu-content" aria-labelledby="menu-title">
-        <div className="section-heading"><div><p className="eyebrow">今日菜單</p><h2 id="menu-title">慢慢吃，好好生活。</h2></div><p>餐點皆為現點現做，約 15–20 分鐘。</p></div>
-        <div className="product-grid">{visibleProducts.map((product) => {
-          const quantity = cart[product.id] || 0;
-          return <article className="menu-card" key={product.id}><div className={`food-art ${product.art}`} aria-hidden="true"><span>{product.featured ? "人氣推薦" : product.category}</span></div><div className="menu-card-copy"><h3>{product.name}</h3><p>{product.description}</p><div className="menu-card-footer"><b>NT$ {product.price}</b>{quantity ? <div className="qty-control" aria-label={`${product.name}數量`}><button onClick={() => changeQuantity(product.id, -1)} aria-label={`減少${product.name}`}>−</button><span>{quantity}</span><button onClick={() => changeQuantity(product.id, 1)} aria-label={`增加${product.name}`}>＋</button></div> : <button className="add-button" onClick={() => changeQuantity(product.id, 1)}>加入</button>}</div></div></article>;
-        })}</div>
+    <main className="customer-app-shell">
+      <section className="customer-app menu-page">
+        <header className="customer-store-header">
+          <a className="customer-home-link" href="/" aria-label="返回 Rootable 首頁">R</a>
+          <div className="customer-store-title"><span>桌邊手機點餐</span><h1>森日小館</h1></div>
+          <div className="table-chip"><span>桌號</span><b>A03</b></div>
+        </header>
+
+        <div className="service-banner"><span>現在接單中</span><b>預計 15–20 分鐘</b></div>
+
+        <div className="category-tabs" aria-label="菜單分類" role="tablist">
+          {categories.map((item) => (
+            <button role="tab" aria-selected={category === item} className={category === item ? "active" : ""} onClick={() => setCategory(item)} key={item}>{item}</button>
+          ))}
+        </div>
+
+        <section className="menu-content" aria-labelledby="menu-title">
+          <div className="section-heading">
+            <div><p className="customer-kicker">今日菜單</p><h2 id="menu-title">想吃什麼？</h2></div>
+            <p>{visibleProducts.length} 項餐點</p>
+          </div>
+
+          <div className="product-grid">
+            {visibleProducts.map((product) => {
+              const quantity = cart[product.id] || 0;
+              return (
+                <article className={`menu-card ${quantity ? "selected" : ""}`} key={product.id}>
+                  <div className="menu-card-copy">
+                    {product.featured && <span className="featured-label">店長推薦</span>}
+                    <h3>{product.name}</h3>
+                    <p>{product.description}</p>
+                    <div className="menu-card-footer">
+                      <b>{money(product.price)}</b>
+                      {quantity ? (
+                        <div className="qty-control" aria-label={`${product.name}數量`}>
+                          <button onClick={() => changeQuantity(product.id, -1)} aria-label={`減少${product.name}`}>−</button>
+                          <span>{quantity}</span>
+                          <button onClick={() => changeQuantity(product.id, 1)} aria-label={`增加${product.name}`}>＋</button>
+                        </div>
+                      ) : (
+                        <button className="add-button" onClick={() => changeQuantity(product.id, 1)} aria-label={`加入${product.name}`}>加入</button>
+                      )}
+                    </div>
+                  </div>
+                  <div className={`food-art ${product.art}`} aria-hidden="true"><span>{product.category}</span></div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+
+        {count > 0 && (
+          <div className="cart-dock" aria-live="polite">
+            <div className="cart-quantity"><span>{count}</span><p>購物車</p></div>
+            <button onClick={() => setStep("checkout")}><span>查看訂單</span><strong>{money(subtotal)}</strong></button>
+          </div>
+        )}
       </section>
-      {count > 0 && <div className="cart-dock"><div><span>{count} 份餐點</span><b>NT$ {subtotal}</b></div><button onClick={() => setStep("checkout")}>查看購物車並結帳</button></div>}
     </main>
   );
 }
