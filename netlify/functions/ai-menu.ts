@@ -8,43 +8,6 @@ const MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const json = (data: unknown, status = 200) => Response.json(data, { status, headers: { "Cache-Control": "no-store", "Content-Type": "application/json; charset=utf-8" } });
 
-const responseSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: ["items", "warnings"],
-  properties: {
-    items: {
-      type: "array",
-      maxItems: 60,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["name", "price", "category", "description", "badge", "optionGroups"],
-        properties: {
-          name: { type: "string" },
-          price: { type: "number", minimum: 0 },
-          category: { type: "string" },
-          description: { type: "string" },
-          badge: { type: "string" },
-          optionGroups: {
-            type: "array",
-            items: {
-              type: "object",
-              additionalProperties: false,
-              required: ["name", "required", "min", "max", "options"],
-              properties: {
-                name: { type: "string" }, required: { type: "boolean" }, min: { type: "integer", minimum: 0 }, max: { type: "integer", minimum: 1 },
-                options: { type: "array", items: { type: "object", additionalProperties: false, required: ["name", "price"], properties: { name: { type: "string" }, price: { type: "number", minimum: 0 } } } },
-              },
-            },
-          },
-        },
-      },
-    },
-    warnings: { type: "array", items: { type: "string" } },
-  },
-};
-
 async function withinRateLimit(request: Request) {
   const forwarded = request.headers.get("x-nf-client-connection-ip") || request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
   const fingerprint = createHash("sha256").update(forwarded.trim()).digest("hex").slice(0, 24);
@@ -78,8 +41,9 @@ export default async (request: Request) => {
 2. 台幣價格輸出整數。價格看不清或沒有標示時填 0，並在 warnings 寫出品名與原因。
 3. 保留套餐、尺寸、甜度、冰量、加料等變體；無法判斷是否必選時設 required=false、min=0。
 4. 不推測過敏原、食材來源、促銷或庫存。沒有說明、標章時輸出空字串。
-5. 相同品項不要重複。若照片模糊、裁切或反光，請在 warnings 明確提醒店家。` }],
-      config: { responseMimeType: "application/json", responseJsonSchema: responseSchema },
+5. 相同品項不要重複。若照片模糊、裁切或反光，請在 warnings 明確提醒店家。
+6. 只輸出 JSON 物件：{"items":[{"name":"","price":0,"category":"","description":"","badge":"","optionGroups":[{"name":"","required":false,"min":0,"max":1,"options":[{"name":"","price":0}]}]}],"warnings":[]}。所有欄位都必須存在。` }],
+      config: { responseMimeType: "application/json" },
     });
     const raw = JSON.parse(response.text || "{}");
     const normalized = normalizeAiMenu(raw);
@@ -93,4 +57,3 @@ export default async (request: Request) => {
 };
 
 export const config: Config = { path: "/api/ai-menu" };
-
