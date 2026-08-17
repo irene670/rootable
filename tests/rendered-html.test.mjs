@@ -40,10 +40,30 @@ test("exposes the customer and merchant product routes", async () => {
   assert.match(menu, /<meta property="og:title" content="森日小館｜手機點餐">/);
   assert.match(menu, /<meta name="twitter:title" content="森日小館｜手機點餐">/);
   assert.doesNotMatch(menu, /og\.png/);
-  assert.match(merchant, /店家接單/);
-  assert.match(merchant, /<meta property="og:title" content="森日小館｜Rootable 店家接單">/);
-  assert.match(merchant, /<meta name="twitter:title" content="森日小館｜Rootable 店家接單">/);
+  assert.match(merchant, /店主後台/);
+  assert.match(merchant, /開啟平板接單/);
+  assert.match(merchant, /<meta property="og:title" content="店家營運後台｜Rootable 森根">/);
+  assert.match(merchant, /<meta name="twitter:title" content="店家營運後台｜Rootable 森根">/);
   assert.doesNotMatch(merchant, /og\.png/);
+});
+
+test("renders the multi-merchant storefront, ordering gate, reservation, and onboarding routes", async () => {
+  const [storeResponse, orderResponse, reserveResponse, startResponse, workbenchResponse] = await Promise.all([
+    render("/s/senri"), render("/s/senri/order?table=A03"), render("/s/senri/reserve"), render("/start"), render("/merchant/orders"),
+  ]);
+  for (const response of [storeResponse, orderResponse, reserveResponse, startResponse, workbenchResponse]) assert.equal(response.status, 200);
+  const [store, order, reserve, start, workbench] = await Promise.all([storeResponse.text(), orderResponse.text(), reserveResponse.text(), startResponse.text(), workbenchResponse.text()]);
+  assert.match(store, /把日常好好煮成一頓飯/);
+  assert.match(store, /內用掃碼點餐/);
+  assert.match(store, /完成訂單的顧客怎麼說/);
+  assert.match(order, /先留下聯絡方式/);
+  assert.match(order, /使用 LINE 登入/);
+  assert.match(order, /輸入手機號碼/);
+  assert.match(reserve, /一般訂位免訂金/);
+  assert.match(reserve, /取消規則/);
+  assert.match(start, /最快 10 分鐘上線/);
+  assert.match(start, /免費開店・不用綁卡/);
+  assert.match(workbench, /接單工作台/);
 });
 
 test("keeps production metadata, storage, and social assets wired", async () => {

@@ -40,6 +40,9 @@ const money = (value: number) => `NT$ ${value.toLocaleString("zh-TW")}`;
 const orderTime = (value: string) => new Date(value).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
 
 export default function MerchantClient() {
+  const [storeId, setStoreId] = useState("senri-demo");
+  const [storeName, setStoreName] = useState("森日小館");
+  const [storeSlug, setStoreSlug] = useState("senri");
   const [orders, setOrders] = useState<Order[]>([]);
   const [view, setView] = useState<MerchantView>("live");
   const [loading, setLoading] = useState(true);
@@ -51,7 +54,7 @@ export default function MerchantClient() {
   const loadOrders = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
     try {
-      const response = await fetch("/api/orders?storeId=senri-demo", { cache: "no-store" });
+      const response = await fetch(`/api/orders?storeId=${encodeURIComponent(storeId)}`, { cache: "no-store" });
       const result = await response.json() as { orders?: Order[]; error?: string };
       if (!response.ok) throw new Error(result.error || "訂單讀取失敗");
       setOrders(result.orders || []);
@@ -62,6 +65,18 @@ export default function MerchantClient() {
     } finally {
       if (!quiet) setLoading(false);
     }
+  }, [storeId]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(async () => {
+      const slug = localStorage.getItem("rootable-merchant-slug") || new URLSearchParams(window.location.search).get("store") || "senri";
+      try {
+        const response = await fetch(`/api/stores?slug=${encodeURIComponent(slug)}`, { cache: "no-store" });
+        const result = await response.json() as { store?: { storeId: string; slug: string; profile: { name: string } } };
+        if (result.store) { setStoreId(result.store.storeId); setStoreName(result.store.profile.name); setStoreSlug(result.store.slug); }
+      } catch { /* The seeded demo stays available when the profile API is offline. */ }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -82,7 +97,7 @@ export default function MerchantClient() {
       const response = await fetch("/api/orders", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: order.id, storeId: "senri-demo", ...changes }),
+        body: JSON.stringify({ id: order.id, storeId, ...changes }),
       });
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "更新失敗");
@@ -171,7 +186,7 @@ export default function MerchantClient() {
     <main className="merchant-page">
       <aside className="merchant-sidebar">
         <a className="brand merchant-brand" href="/"><span className="brand-mark">R</span><span>Rootable <b>森根</b></span></a>
-        <div className="merchant-store"><span className="store-avatar">森</span><div><b>森日小館</b><small>高雄鹽埕・試營運店</small></div></div>
+        <div className="merchant-store"><span className="store-avatar">{storeName.slice(0, 1)}</span><div><b>{storeName}</b><small>{storeSlug}.rootable.tw・試營運店</small></div></div>
         <nav className="merchant-nav" aria-label="店家後台導覽">
           <button className={view === "live" ? "active" : ""} onClick={() => setView("live")} aria-pressed={view === "live"}><span>01</span><div><b>接單工作台</b><small>{activeOrders.length} 張進行中</small></div></button>
           <button className={view === "completed" ? "active" : ""} onClick={() => setView("completed")} aria-pressed={view === "completed"}><span>02</span><div><b>已完成</b><small>{completedOrders.length} 張訂單</small></div></button>
@@ -186,7 +201,7 @@ export default function MerchantClient() {
           <div className="merchant-actions">
             <div className="sync-status"><span className="sync-dot" /><b>自動同步</b><small>{lastSynced ? `${new Date(lastSynced).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" })} 更新` : "準備連線"}</small></div>
             <button className="refresh-button" onClick={() => loadOrders()} disabled={loading}>重新整理</button>
-            <a className="open-menu-link" href="/menu">開啟顧客點餐</a>
+            <a className="open-menu-link" href={`/s/${storeSlug}/order?table=A03`}>開啟顧客點餐</a>
           </div>
         </header>
 

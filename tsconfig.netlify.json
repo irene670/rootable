@@ -7,6 +7,10 @@
     "app/page.tsx",
     "app/menu/MenuClient.tsx",
     "app/merchant/MerchantClient.tsx",
+    "app/merchant/MerchantStudioClient.tsx",
+    "app/onboarding/OnboardingClient.tsx",
+    "app/storefront/StorefrontClient.tsx",
+    "platform/**/*.ts",
     "netlify/functions/**/*.ts",
     "src/**/*.tsx",
     "vite.netlify.config.ts"

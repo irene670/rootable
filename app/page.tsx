@@ -22,7 +22,7 @@ export default function Home() {
         <nav aria-label="主要導覽">
           <a href="#how">怎麼運作</a>
           <a href="#pricing">收費方式</a>
-          <a className="header-cta" href="/merchant">店家試用</a>
+          <a className="header-cta" href="/start">免費開店</a>
         </nav>
       </header>
 
@@ -34,8 +34,8 @@ export default function Home() {
             不用換 POS，也不用先學複雜系統。顧客手機掃碼完成點餐，店家在平板立即接單；收現金或開通代支付，都能用同一套流程完成。
           </p>
           <div className="hero-actions">
-            <a className="button button-primary" href="/menu">體驗顧客點餐</a>
-            <a className="button button-secondary" href="/merchant">查看店家接單</a>
+            <a className="button button-primary" href="/s/senri">查看店家網站</a>
+            <a className="button button-secondary" href="/start">免費建立我的店</a>
           </div>
           <div className="trust-row" aria-label="服務特色">
             <span>免費開店</span><span>現金也能用</span><span>免換既有 POS</span>
@@ -92,7 +92,7 @@ export default function Home() {
         <div className="ecosystem-map" aria-label="Rootable 生態系"><div className="root-node"><b>Rootable 森根</b><span>點餐・接單・收款</span></div><div><b>森藏 SENZO</b><span>餐券與會員交易</span></div><div><b>SeedLab</b><span>探店與內容導流</span></div><div><b>東瑭</b><span>桌牌與現場物料</span></div></div>
       </section>
 
-      <section className="final-cta"><p className="eyebrow">90 天試營運</p><h2>先讓 30 家小店真的用起來。</h2><p>顧客掃碼下單、店家平板接單、現金與代支付並行。從一條完整流程開始驗證。</p><div><a className="button button-primary" href="/menu">體驗顧客點餐</a><a className="button button-secondary" href="/merchant">開啟店家平板</a></div></section>
+      <section className="final-cta"><p className="eyebrow">90 天試營運</p><h2>先讓 30 家小店真的用起來。</h2><p>顧客掃碼下單、店家平板接單、現金與代支付並行。從一條完整流程開始驗證。</p><div><a className="button button-primary" href="/s/senri/order?table=A03">體驗顧客點餐</a><a className="button button-secondary" href="/merchant">開啟店家後台</a></div></section>
 
       <footer className="site-footer"><a className="brand" href="/"><span className="brand-mark">R</span><span>Rootable <b>森根</b></span></a><p>讓每間小店，都能用自己的步調長出數位根系。</p><span>試營運版本・模擬付款</span></footer>
     </main>

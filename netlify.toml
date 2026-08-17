@@ -12,6 +12,21 @@
   status = 200
 
 [[redirects]]
+  from = "/api/stores"
+  to = "/.netlify/functions/stores"
+  status = 200
+
+[[redirects]]
+  from = "/api/reservations"
+  to = "/.netlify/functions/reservations"
+  status = 200
+
+[[redirects]]
+  from = "/api/reviews"
+  to = "/.netlify/functions/reviews"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

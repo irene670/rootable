@@ -1,8 +1,25 @@
-# vinext-starter
+# Rootable 森根
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+Rootable 是給小店的多店家營運平台：店家可自助建立品牌網站與菜單，顧客用手機完成內用 QR 點餐、預約外帶或線上訂位，店家則用平板處理訂單。本專案同時保留 [vinext](https://github.com/cloudflare/vinext) 與 Netlify 部署設定。
+
+## 試營運入口
+
+- `/start`：模擬 LINE 登入與自助開店
+- `/s/senri`：森日小館店家網站
+- `/s/senri/order?table=A03`：桌號 A03 的手機掃碼點餐
+- `/s/senri/takeout`：預約外帶
+- `/s/senri/reserve`：線上訂位
+- `/merchant`：店主網站／菜單／訂位／評論／團隊／方案後台
+- `/merchant/orders`：平板接單工作台
+
+正式自訂網域會把 `senri.rootable.tw` 對應到同一個店家；Netlify 免費網域先使用 `/s/senri` 路徑示範。
+
+## 資料與模擬邊界
+
+- Netlify 正式站使用 Netlify Blobs 保存店家、訂單、訂位與評論。
+- 現金訂單不收平台手續費；模擬 Rootable 代支付按成功交易計算 3.9%。
+- LINE Login、LINE Pay、Apple Pay、簡訊、退款、通知與撥款目前皆為清楚標示的模擬流程，不會存取真實帳號或產生扣款。
+- 顧客開始點餐前必須選擇模擬 LINE 登入或填手機號碼；手機號碼目前不發送驗證碼。
 
 ## Prerequisites
 
