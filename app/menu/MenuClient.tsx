@@ -1,19 +1,25 @@
 "use client";
 
-/* eslint-disable @next/next/no-html-link-for-pages -- Native anchors avoid the deployed Vinext Link runtime crash. */
+/* eslint-disable @next/next/no-html-link-for-pages, @next/next/no-img-element -- Vinext uses native anchors and locally hosted responsive menu photos. */
 
 import { useMemo, useState } from "react";
 
 const products = [
-  { id: "set-chicken", name: "森野炙燒雞腿定食", description: "每日蔬菜、味噌湯與小缽", price: 280, category: "主餐", art: "art-chicken", featured: true },
-  { id: "set-tofu", name: "胡麻野菜豆腐定食", description: "季節蔬菜、胡麻醬與五穀飯", price: 250, category: "主餐", art: "art-tofu" },
-  { id: "curry", name: "慢燉野菜咖哩", description: "十種蔬果熬煮，溫潤微辣", price: 240, category: "主餐", art: "art-curry" },
-  { id: "coffee", name: "山霧手沖咖啡", description: "中淺焙，柑橘與黑糖香氣", price: 180, category: "飲品", art: "art-coffee" },
-  { id: "latte", name: "栗香拿鐵", description: "自製栗子泥與雙份濃縮", price: 160, category: "飲品", art: "art-latte" },
-  { id: "pudding", name: "焦糖昭和布丁", description: "雞蛋、鮮奶與微苦焦糖", price: 120, category: "甜點", art: "art-pudding" },
+  { id: "set-chicken", name: "炙燒照燒雞腿定食", description: "去骨雞腿、越光米、味噌湯與三樣小缽", price: 320, category: "定食", image: "/menu/chicken.jpg", imageAlt: "炙燒雞腿搭配米飯與季節蔬菜", badge: "人氣 No.1", featured: true },
+  { id: "set-salmon", name: "鹽麴烤鮭魚定食", description: "鮭魚、越光米、味噌湯與三樣小缽", price: 360, category: "定食", image: "/menu/salmon.jpg", imageAlt: "烤鮭魚、米飯與味噌湯定食", badge: "每日限量" },
+  { id: "vegetable-curry", name: "十蔬熟成咖哩飯", description: "洋蔥與蘋果慢炒，搭配當日烤時蔬", price: 280, category: "丼與麵", image: "/menu/curry.jpg", imageAlt: "蔬菜咖哩與白飯", badge: "微辣" },
+  { id: "moon-rice", name: "月見七彩野菜丼", description: "溫泉蛋、時蔬、芝麻與日式醬汁", price: 290, category: "丼與麵", image: "/menu/rice-bowl.jpg", imageAlt: "鋪滿時蔬與溫泉蛋的日式丼飯" },
+  { id: "tofu-bowl", name: "胡麻酥豆腐野菜碗", description: "酥豆腐、毛豆、酪梨、鮮蔬與胡麻醬", price: 300, category: "丼與麵", image: "/menu/tofu.jpg", imageAlt: "酥豆腐、酪梨與多種鮮蔬組成的野菜碗" },
+  { id: "miso-ramen", name: "味噌豆乳野菜拉麵", description: "豆乳味噌湯底、豆腐、海苔與季節蔬菜", price: 290, category: "丼與麵", image: "/menu/ramen.jpg", imageAlt: "豆腐、海苔與蔬菜拉麵", badge: "可做全素" },
+  { id: "coffee", name: "山霧手沖咖啡", description: "中淺焙，柑橘、堅果與黑糖尾韻", price: 150, category: "飲品", image: "/menu/coffee.jpg", imageAlt: "木桌上的手沖黑咖啡" },
+  { id: "latte", name: "黑糖海鹽拿鐵", description: "雙份濃縮、鮮奶、黑糖與海鹽奶蓋", price: 160, category: "飲品", image: "/menu/coffee.jpg", imageAlt: "咖啡館木桌上的熱拿鐵", badge: "招牌" },
+  { id: "matcha", name: "宇治抹茶歐蕾", description: "宇治抹茶、鮮奶，可選冰飲或熱飲", price: 170, category: "飲品", image: "/menu/matcha.jpg", imageAlt: "玻璃杯中的冰抹茶歐蕾" },
+  { id: "tea", name: "柚香冷泡烏龍", description: "冷泡烏龍、柚子蜜與新鮮檸檬", price: 130, category: "飲品", image: "/menu/tea.jpg", imageAlt: "陽光下加滿冰塊的冷泡茶" },
+  { id: "pudding", name: "焦糖昭和布丁", description: "雞蛋、鮮奶、香草與微苦焦糖", price: 130, category: "甜點", image: "/menu/pudding.jpg", imageAlt: "玻璃杯中的手工奶香布丁", badge: "每日手作" },
+  { id: "cheesecake", name: "柚香巴斯克乳酪", description: "奶油乳酪、柚子皮與海鹽鮮奶油", price: 160, category: "甜點", image: "/menu/cheesecake.jpg", imageAlt: "白色盤中的乳酪蛋糕切片" },
 ];
 
-const categories = ["全部", "主餐", "飲品", "甜點"];
+const categories = ["全部", "定食", "丼與麵", "飲品", "甜點"];
 
 type Cart = Record<string, number>;
 type PaymentMethod = "cash" | "rootable_pay";
@@ -124,7 +130,8 @@ export default function MenuClient() {
               <div className="checkout-items">
                 {items.map((item) => (
                   <article className="checkout-item" key={item.id}>
-                    <div><h2>{item.name}</h2><p>{money(item.price)}</p></div>
+                    <img src={item.image} alt="" width="64" height="64" />
+                    <div className="checkout-item-copy"><h2>{item.name}</h2><p>{money(item.price)}</p></div>
                     <div className="qty-control" aria-label={`${item.name}數量`}>
                       <button onClick={() => changeQuantity(item.id, -1)} aria-label={`減少${item.name}`}>−</button>
                       <span>{item.quantity}</span>
@@ -228,11 +235,16 @@ export default function MenuClient() {
                       )}
                     </div>
                   </div>
-                  <div className={`food-art ${product.art}`} aria-hidden="true"><span>{product.category}</span></div>
+                  <figure className="food-photo">
+                    <img src={product.image} alt={product.imageAlt} width="320" height="320" loading="lazy" decoding="async" />
+                    <figcaption><span>{product.category}</span>{product.badge && <b>{product.badge}</b>}</figcaption>
+                  </figure>
                 </article>
               );
             })}
           </div>
+
+          <p className="menu-photo-note">餐點照片為擺盤示意；實際內容依當日食材為準。照片來源：Pexels。</p>
         </section>
 
         {count > 0 && (

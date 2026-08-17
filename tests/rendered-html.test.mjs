@@ -34,6 +34,10 @@ test("exposes the customer and merchant product routes", async () => {
   const [menu, merchant] = await Promise.all([menuResponse.text(), merchantResponse.text()]);
   assert.match(menu, /森日小館/);
   assert.match(menu, /手機點餐/);
+  assert.match(menu, /炙燒照燒雞腿定食/);
+  assert.match(menu, /味噌豆乳野菜拉麵/);
+  assert.match(menu, /宇治抹茶歐蕾/);
+  assert.match(menu, /\/menu\/chicken\.jpg/);
   assert.match(menu, /<meta property="og:title" content="森日小館｜手機點餐">/);
   assert.match(menu, /<meta name="twitter:title" content="森日小館｜手機點餐">/);
   assert.doesNotMatch(menu, /og\.png/);
@@ -54,5 +58,9 @@ test("keeps production metadata, storage, and social assets wired", async () => 
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   assert.match(hosting, /"d1": "DB"/);
   await access(new URL("../public/og.png", import.meta.url));
+  await Promise.all([
+    "chicken.jpg", "salmon.jpg", "tofu.jpg", "ramen.jpg", "rice-bowl.jpg", "curry.jpg",
+    "coffee.jpg", "matcha.jpg", "tea.jpg", "pudding.jpg", "cheesecake.jpg", "ATTRIBUTION.md",
+  ].map((file) => access(new URL(`../public/menu/${file}`, import.meta.url))));
   await assert.rejects(access(new URL("../app/_sites-preview/SkeletonPreview.tsx", import.meta.url)));
 });
