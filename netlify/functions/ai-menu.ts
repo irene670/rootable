@@ -42,7 +42,8 @@ export default async (request: Request) => {
 3. 保留套餐、尺寸、甜度、冰量、加料等變體；無法判斷是否必選時設 required=false、min=0。
 4. 不推測過敏原、食材來源、促銷或庫存。沒有說明、標章時輸出空字串。
 5. 相同品項不要重複。若照片模糊、裁切或反光，請在 warnings 明確提醒店家。
-6. 只輸出 JSON 物件：{"items":[{"name":"","price":0,"category":"","description":"","badge":"","optionGroups":[{"name":"","required":false,"min":0,"max":1,"options":[{"name":"","price":0}]}]}],"warnings":[]}。所有欄位都必須存在。` }],
+6. 每個品項尋找照片中「只呈現該餐點」的照片區域，imageBox 使用 [ymin,xmin,ymax,xmax]，座標依整張輸入圖正規化為 0–1000 的整數。只框食物照片，不要包含品名、價格或其他文字；若沒有專屬或可明確對應的照片，imageBox 輸出空陣列 []。
+7. 只輸出 JSON 物件：{"items":[{"name":"","price":0,"category":"","description":"","badge":"","imageBox":[120,80,360,420],"optionGroups":[{"name":"","required":false,"min":0,"max":1,"options":[{"name":"","price":0}]}]}],"warnings":[]}。所有欄位都必須存在。` }],
       config: { responseMimeType: "application/json" },
     });
     const raw = JSON.parse(response.text || "{}");

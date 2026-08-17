@@ -13,5 +13,6 @@ test("builds the Netlify SPA with multi-merchant routes and persistent functions
     access(new URL("../netlify/functions/reservations.ts", import.meta.url)),
     access(new URL("../netlify/functions/reviews.ts", import.meta.url)),
     access(new URL("../netlify/functions/ai-menu.ts", import.meta.url)),
+    access(new URL("../netlify/functions/menu-images.ts", import.meta.url)),
   ]);
 });
