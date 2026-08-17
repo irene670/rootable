@@ -20,11 +20,16 @@ export async function ensureOrderSchema() {
     env.DB.prepare(`CREATE TABLE IF NOT EXISTS order_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, order_id TEXT NOT NULL,
       product_id TEXT NOT NULL, product_name TEXT NOT NULL,
-      quantity INTEGER NOT NULL, unit_price INTEGER NOT NULL
+      quantity INTEGER NOT NULL, served_quantity INTEGER NOT NULL DEFAULT 0,
+      unit_price INTEGER NOT NULL
     )`),
     env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_orders_store_status ON orders (store_id, status)"),
     env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders (created_at)"),
     env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items (order_id)"),
   ]);
+  const columns = await env.DB.prepare("PRAGMA table_info(order_items)").all<{ name: string }>();
+  if (!columns.results.some((column) => column.name === "served_quantity")) {
+    await env.DB.prepare("ALTER TABLE order_items ADD COLUMN served_quantity INTEGER NOT NULL DEFAULT 0").run();
+  }
   ready = true;
 }

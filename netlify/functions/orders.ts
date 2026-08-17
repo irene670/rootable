@@ -1,7 +1,7 @@
 import { getStore } from "@netlify/blobs";
 import type { Config } from "@netlify/functions";
 
-const statuses = new Set(["new", "accepted", "preparing", "ready", "completed", "cancelled"]);
+const statuses = new Set(["awaiting_payment", "new", "accepted", "preparing", "ready", "completed", "cancelled"]);
 const paymentStatuses = new Set(["unpaid", "paid", "refunded"]);
 
 type IncomingItem = {
@@ -12,9 +12,11 @@ type IncomingItem = {
 };
 
 type OrderItem = {
+  id: string;
   productId: string;
   productName: string;
   quantity: number;
+  servedQuantity: number;
   unitPrice: number;
 };
 
@@ -53,7 +55,11 @@ async function listOrders(storeId: string) {
   const orders = (await Promise.all(
     blobs.map(({ key }) => ordersStore.get(key, { type: "json", consistency: "strong" }) as Promise<Order | null>),
   )).filter((order): order is Order => Boolean(order));
-  return orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 80);
+  return orders.map((order) => ({
+    ...order,
+    status: order.paymentMethod === "cash" && order.paymentStatus === "unpaid" && !["completed", "cancelled"].includes(order.status) ? "awaiting_payment" : order.status,
+    items: order.items.map((item, index) => ({ ...item, id: item.id || `${order.id}:${index}`, servedQuantity: item.servedQuantity ?? 0 })),
+  })).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 80);
 }
 
 async function createOrder(request: Request) {
@@ -66,14 +72,16 @@ async function createOrder(request: Request) {
     orderSource?: string;
     items?: IncomingItem[];
   };
-  const items = (payload.items ?? []).filter((item): item is OrderItem =>
+  const items = (payload.items ?? []).filter((item) =>
     Boolean(item.productId && item.productName)
     && Number.isInteger(item.quantity) && Number(item.quantity) > 0
     && Number.isInteger(item.unitPrice) && Number(item.unitPrice) > 0,
-  ).map((item) => ({
-    productId: item.productId,
-    productName: item.productName,
+  ).map((item, index) => ({
+    id: `pending:${index}`,
+    productId: item.productId!,
+    productName: item.productName!,
     quantity: Number(item.quantity),
+    servedQuantity: 0,
     unitPrice: Number(item.unitPrice),
   }));
 
@@ -92,7 +100,7 @@ async function createOrder(request: Request) {
     orderNo: `R${Date.now().toString().slice(-7)}`,
     storeId: payload.storeId || "senri-demo",
     tableNo: payload.tableNo.trim(),
-    status: "new",
+    status: payload.paymentMethod === "rootable_pay" ? "new" : "awaiting_payment",
     paymentMethod: payload.paymentMethod!,
     paymentChannel: payload.paymentChannel!,
     paymentStatus: payload.paymentMethod === "rootable_pay" ? "paid" : "unpaid",
@@ -105,7 +113,7 @@ async function createOrder(request: Request) {
     feeRate,
     createdAt,
     updatedAt: createdAt,
-    items,
+    items: items.map((item, index) => ({ ...item, id: `${id}:${index}` })),
   };
 
   await store().setJSON(orderKey(order.storeId, id), order, { onlyIfNew: true });
@@ -113,21 +121,34 @@ async function createOrder(request: Request) {
 }
 
 async function updateOrder(request: Request) {
-  const payload = (await request.json()) as { id?: string; storeId?: string; status?: string; paymentStatus?: string };
+  const payload = (await request.json()) as { id?: string; storeId?: string; status?: string; paymentStatus?: string; itemId?: string | number; servedDelta?: number };
   const storeId = payload.storeId || "senri-demo";
   if (!payload.id) return json({ error: "缺少訂單編號" }, 400);
   if (payload.status && !statuses.has(payload.status)) return json({ error: "訂單狀態不正確" }, 400);
   if (payload.paymentStatus && !paymentStatuses.has(payload.paymentStatus)) return json({ error: "付款狀態不正確" }, 400);
-  if (!payload.status && !payload.paymentStatus) return json({ error: "沒有可更新的狀態" }, 400);
+  const isItemUpdate = payload.itemId !== undefined || payload.servedDelta !== undefined;
+  if (isItemUpdate && (!payload.itemId || ![1, -1].includes(payload.servedDelta ?? 0))) return json({ error: "出餐更新資料不正確" }, 400);
+  if (!payload.status && !payload.paymentStatus && !isItemUpdate) return json({ error: "沒有可更新的狀態" }, 400);
 
   const ordersStore = store();
   const key = orderKey(storeId, payload.id);
   const entry = await ordersStore.getWithMetadata(key, { type: "json", consistency: "strong" }) as { data: Order; etag: string } | null;
   if (!entry) return json({ error: "找不到訂單" }, 404);
+  const current = { ...entry.data, items: entry.data.items.map((item, index) => ({ ...item, id: item.id || `${entry.data.id}:${index}`, servedQuantity: item.servedQuantity ?? 0 })) };
+  if (isItemUpdate && current.paymentStatus !== "paid") return json({ error: "訂單尚未付款，不能送入廚房" }, 409);
+  if (payload.status && current.paymentStatus !== "paid" && payload.status !== "awaiting_payment") return json({ error: "請先完成付款確認" }, 409);
+  const items = isItemUpdate ? current.items.map((item) => item.id === String(payload.itemId)
+    ? { ...item, servedQuantity: Math.max(0, Math.min(item.quantity, item.servedQuantity + payload.servedDelta!)) }
+    : item) : current.items;
+  const allServed = isItemUpdate && items.every((item) => item.servedQuantity >= item.quantity);
+  const anyServed = isItemUpdate && items.some((item) => item.servedQuantity > 0);
+  const itemStatus = isItemUpdate ? allServed ? "ready" : anyServed ? "preparing" : ["ready", "preparing"].includes(current.status) ? "accepted" : current.status : current.status;
+  const paymentStatus = payload.paymentStatus || current.paymentStatus;
   const order = {
-    ...entry.data,
-    ...(payload.status ? { status: payload.status } : {}),
-    ...(payload.paymentStatus ? { paymentStatus: payload.paymentStatus } : {}),
+    ...current,
+    items,
+    status: payload.paymentStatus === "paid" && current.paymentMethod === "cash" && current.paymentStatus === "unpaid" ? "new" : payload.status || itemStatus,
+    paymentStatus,
     updatedAt: new Date().toISOString(),
   };
   const result = await ordersStore.setJSON(key, order, { onlyIfMatch: entry.etag });

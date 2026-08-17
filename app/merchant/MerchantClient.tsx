@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-type OrderItem = { id?: number; productName: string; quantity: number; unitPrice: number };
+type OrderItem = { id?: string | number; productName: string; quantity: number; servedQuantity?: number; unitPrice: number };
 type Order = {
   id: string;
   orderNo: string;
@@ -25,17 +25,16 @@ type Order = {
 };
 type MerchantView = "live" | "completed" | "settlement";
 
-const labels: Record<string, string> = { new: "待接單", accepted: "已接單", preparing: "製作中", ready: "可取餐", completed: "已完成", cancelled: "已取消" };
+const labels: Record<string, string> = { awaiting_payment: "待收現", new: "待接單", accepted: "已接單", preparing: "上菜中", ready: "已全數出餐", completed: "已完成", cancelled: "已取消" };
 const nextAction: Record<string, { label: string; status: string }> = {
   new: { label: "接單", status: "accepted" },
   accepted: { label: "開始製作", status: "preparing" },
-  preparing: { label: "標記可取餐", status: "ready" },
-  ready: { label: "完成取餐", status: "completed" },
+  ready: { label: "完成訂單", status: "completed" },
 };
 const queueColumns = [
   { id: "new", title: "待接單", hint: "新訂單先確認", statuses: ["new"] },
-  { id: "preparing", title: "製作中", hint: "依進單順序處理", statuses: ["accepted", "preparing"] },
-  { id: "ready", title: "可取餐", hint: "交餐後完成訂單", statuses: ["ready"] },
+  { id: "preparing", title: "製作／上菜中", hint: "餐點可分批逐份出餐", statuses: ["accepted", "preparing"] },
+  { id: "ready", title: "已全數出餐", hint: "確認桌邊交付後結單", statuses: ["ready"] },
 ];
 
 const money = (value: number) => `NT$ ${value.toLocaleString("zh-TW")}`;
@@ -52,6 +51,7 @@ export default function MerchantClient() {
   const [updating, setUpdating] = useState("");
   const [lastSynced, setLastSynced] = useState(0);
   const [now, setNow] = useState(() => Date.now());
+  const [notice, setNotice] = useState("");
 
   const loadOrders = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -92,8 +92,8 @@ export default function MerchantClient() {
     };
   }, [loadOrders]);
 
-  const updateOrder = async (order: Order, changes: { status?: string; paymentStatus?: string }) => {
-    setUpdating(order.id);
+  const updateOrder = async (order: Order, changes: { status?: string; paymentStatus?: string; itemId?: string | number; servedDelta?: number }, actionKey = order.id) => {
+    setUpdating(actionKey);
     setError("");
     try {
       const response = await fetch("/api/orders", {
@@ -104,6 +104,11 @@ export default function MerchantClient() {
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "更新失敗");
       await loadOrders(true);
+      if (changes.paymentStatus === "paid") setNotice(`${order.tableNo} 已收款，訂單已送入待接單`);
+      if (changes.itemId !== undefined) {
+        const item = order.items.find((entry) => String(entry.id) === String(changes.itemId));
+        setNotice(`${order.tableNo} ${item?.productName || "餐點"}${changes.servedDelta === -1 ? "已復原 1 份" : "已出餐 1 份"}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "更新失敗");
     } finally {
@@ -112,17 +117,26 @@ export default function MerchantClient() {
   };
 
   const activeOrders = orders.filter((order) => !["completed", "cancelled"].includes(order.status));
+  const kitchenOrders = activeOrders.filter((order) => order.paymentStatus === "paid" && order.status !== "awaiting_payment");
+  const cashPendingOrders = orders.filter((order) => order.status === "awaiting_payment" && order.paymentMethod === "cash" && order.paymentStatus === "unpaid");
   const completedOrders = orders.filter((order) => order.status === "completed");
   const counts = useMemo(() => ({
     new: orders.filter((order) => order.status === "new").length,
     preparing: orders.filter((order) => ["accepted", "preparing"].includes(order.status)).length,
     ready: orders.filter((order) => order.status === "ready").length,
+    cash: orders.filter((order) => order.status === "awaiting_payment" && order.paymentMethod === "cash" && order.paymentStatus === "unpaid").length,
   }), [orders]);
   const productionCounts = useMemo(() => {
-    const totals = new Map<string, number>();
-    activeOrders.forEach((order) => order.items.forEach((item) => totals.set(item.productName, (totals.get(item.productName) || 0) + item.quantity)));
-    return Array.from(totals.entries()).sort((a, b) => b[1] - a[1]).slice(0, 4);
-  }, [activeOrders]);
+    const totals = new Map<string, { name: string; remaining: number; tables: Set<string>; nextOrder: Order; nextItem: OrderItem }>();
+    [...kitchenOrders].filter((order) => ["accepted", "preparing"].includes(order.status)).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).forEach((order) => order.items.forEach((item) => {
+      const remaining = Math.max(0, item.quantity - (item.servedQuantity ?? 0));
+      if (!remaining || item.id === undefined) return;
+      const current = totals.get(item.productName);
+      if (current) { current.remaining += remaining; current.tables.add(order.tableNo); }
+      else totals.set(item.productName, { name: item.productName, remaining, tables: new Set([order.tableNo]), nextOrder: order, nextItem: item });
+    }));
+    return Array.from(totals.values()).slice(0, 8);
+  }, [kitchenOrders]);
   const payOrders = orders.filter((order) => order.paymentMethod === "rootable_pay" && order.paymentStatus === "paid");
   const marketplaceOrders = orders.filter((order) => order.orderSource === "rootable_marketplace" || order.customerNote.startsWith("【平台導流】"));
   const gross = payOrders.reduce((sum, order) => sum + order.subtotal, 0);
@@ -158,9 +172,22 @@ export default function MerchantClient() {
         </div>
 
         <div className="ticket-items">
-          {order.items.map((item, index) => (
-            <div key={`${item.productName}-${index}`}><b>{item.quantity}</b><span>{item.productName}</span></div>
-          ))}
+          {order.items.map((item, index) => {
+            const served = item.servedQuantity ?? 0;
+            const complete = served >= item.quantity;
+            const itemKey = `${order.id}:${item.id ?? index}`;
+            return (
+            <div className={complete ? "is-served" : ""} key={`${item.productName}-${index}`}>
+              <b>{item.quantity}</b>
+              <span>{item.productName}<small>{complete ? "已全數出餐" : `已出 ${served} / ${item.quantity}`}</small></span>
+              {!history && order.paymentStatus === "paid" && ["accepted", "preparing"].includes(order.status) && item.id !== undefined && (
+                <div className="item-serve-actions">
+                  <button className="undo-serve" onClick={() => updateOrder(order, { itemId: item.id, servedDelta: -1 }, itemKey)} disabled={!served || updating === itemKey}>復原</button>
+                  <button className="serve-one" onClick={() => updateOrder(order, { itemId: item.id, servedDelta: 1 }, itemKey)} disabled={complete || updating === itemKey}>{updating === itemKey ? "更新中…" : "出餐 1 份"}</button>
+                </div>
+              )}
+            </div>
+          )})}
         </div>
 
         {visibleNote && <p className="order-note"><b>顧客備註</b>{visibleNote}</p>}
@@ -172,7 +199,7 @@ export default function MerchantClient() {
           ) : (
             <div className="ticket-actions">
               {order.paymentMethod === "cash" && order.paymentStatus === "unpaid" && (
-                <button className="cash-button" onClick={() => updateOrder(order, { paymentStatus: "paid" })} disabled={updating === order.id}>確認收現</button>
+                <button className="cash-button" onClick={() => updateOrder(order, { paymentStatus: "paid" })} disabled={updating === order.id}>確認已收 {money(order.subtotal)}</button>
               )}
               {nextAction[order.status] && (
                 <button className="progress-button" onClick={() => updateOrder(order, { status: nextAction[order.status].status })} disabled={updating === order.id}>
@@ -212,20 +239,31 @@ export default function MerchantClient() {
         </header>
 
         {error && <p className="form-error dashboard-error" role="alert">{error}</p>}
+        {notice && <p className="dashboard-notice" role="status"><span>{notice}</span><button onClick={() => setNotice("")} aria-label="關閉通知">關閉</button></p>}
 
         {view === "live" && (
           <div className="live-workspace">
             <section className="metric-row" aria-label="即時訂單摘要">
-              <article className="metric-new"><span>待接單</span><b>{counts.new}</b><small>請先確認</small></article>
+              <article className="metric-cash"><span>待收現</span><b>{counts.cash}</b><small>收款後才進廚房</small></article>
+              <article className="metric-new"><span>待接單</span><b>{counts.new}</b><small>已付款訂單</small></article>
               <article><span>製作中</span><b>{counts.preparing}</b><small>廚房處理</small></article>
-              <article className="metric-ready"><span>可取餐</span><b>{counts.ready}</b><small>等待交付</small></article>
-              <article><span>全部進行中</span><b>{activeOrders.length}</b><small>即時同步</small></article>
+              <article className="metric-ready"><span>已全數出餐</span><b>{counts.ready}</b><small>等待結單</small></article>
             </section>
+
+            {cashPendingOrders.length > 0 && (
+              <section className="cash-approval-panel" aria-label="待收現金訂單">
+                <header><div><span>櫃台待收現</span><small>確認桌號與金額，收款完成才會送入廚房</small></div><b>{cashPendingOrders.length} 張</b></header>
+                <div>{cashPendingOrders.map((order) => <article key={order.id}><div><strong>{order.tableNo}</strong><span>{order.orderNo}・{elapsedMinutes(order.createdAt)} 分鐘</span></div><p>{order.items.reduce((sum, item) => sum + item.quantity, 0)} 份餐點</p><button onClick={() => updateOrder(order, { paymentStatus: "paid" })} disabled={updating === order.id}>{updating === order.id ? "確認中…" : `已收 ${money(order.subtotal)}`}</button></article>)}</div>
+              </section>
+            )}
 
             {productionCounts.length > 0 && (
               <section className="production-strip" aria-label="目前待製作餐點總數">
-                <div><span>備餐總覽</span><small>所有進行中訂單</small></div>
-                {productionCounts.map(([name, quantity]) => <p key={name}><b>{quantity}</b><span>{name}</span></p>)}
+                <header><div><span>品項總覽</span><small>只計已付款訂單・依最早進單核取</small></div></header>
+                <div className="production-grid">{productionCounts.map((item) => {
+                  const actionKey = `${item.nextOrder.id}:${item.nextItem.id}`;
+                  return <article key={item.name}><div><b>尚需 {item.remaining} 份</b><span>{item.name}</span><small>涉及 {item.tables.size} 桌・下一桌 {item.nextOrder.tableNo}</small></div><button onClick={() => updateOrder(item.nextOrder, { itemId: item.nextItem.id, servedDelta: 1 }, actionKey)} disabled={updating === actionKey}>{updating === actionKey ? "更新中…" : "出餐 1 份"}</button></article>;
+                })}</div>
               </section>
             )}
 

@@ -15,6 +15,13 @@
       "when": 1786930790337,
       "tag": "0001_calm_red_wolf",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786990078485,
+      "tag": "0002_oval_hydra",
+      "breakpoints": true
     }
   ]
 }

@@ -28,5 +28,6 @@ export const orderItems = sqliteTable("order_items", {
   productId: text("product_id").notNull(),
   productName: text("product_name").notNull(),
   quantity: integer("quantity").notNull(),
+  servedQuantity: integer("served_quantity").notNull().default(0),
   unitPrice: integer("unit_price").notNull(),
 }, (table) => [index("idx_order_items_order_id").on(table.orderId)]);

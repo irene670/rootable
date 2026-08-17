@@ -10,7 +10,7 @@ test("customer ordering keeps real-data loading, menu fallback, and cart safegua
   assert.match(source, /recommendedProducts\(store\.products\)/);
   assert.match(source, /rootable-cart-/);
   assert.match(source, /tenant-remove-line/);
-  assert.match(source, /店內付款/);
+  assert.match(source, /餐前付款/);
   assert.match(source, /window\.scrollTo\(\{ top: 0/);
   assert.doesNotMatch(source, /href="\/s\/senri"/);
   assert.doesNotMatch(source, /<b>⌑<\/b>|<b>▣<\/b>|<b>▤<\/b>/);
@@ -52,4 +52,26 @@ test("pricing keeps direct orders separate from marketplace-attributed orders", 
   assert.match(storefront, /orderSource,/);
   assert.match(orderApi, /orderSource === "rootable_marketplace" \? 0\.15/);
   assert.match(orderApi, /feeRate/);
+});
+
+test("cash orders are gated before kitchen and split serving is tracked per item", async () => {
+  const [merchant, d1Orders, netlifyOrders, storefront, legacyMenu] = await Promise.all([
+    readFile(new URL("../app/merchant/MerchantClient.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/orders/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../netlify/functions/orders.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/storefront/StorefrontClient.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/menu/MenuClient.tsx", import.meta.url), "utf8"),
+  ]);
+  for (const api of [d1Orders, netlifyOrders]) {
+    assert.match(api, /awaiting_payment/);
+    assert.match(api, /servedQuantity/);
+    assert.match(api, /訂單尚未付款，不能送入廚房/);
+  }
+  assert.match(d1Orders, /createdAt, updatedAt: createdAt/);
+  assert.match(merchant, /櫃台待收現/);
+  assert.match(merchant, /出餐 1 份/);
+  assert.match(merchant, /下一桌/);
+  assert.match(merchant, /quantity - \(item\.servedQuantity \?\? 0\)/);
+  assert.match(storefront, /店員確認收款後，訂單才會送入廚房/);
+  assert.match(legacyMenu, /店員確認收款後才開始備餐/);
 });

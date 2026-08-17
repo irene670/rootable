@@ -79,6 +79,11 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="paperless-mission" id="mission">
+        <div className="mission-copy"><p className="eyebrow">森藏文教協會發起</p><h2>一張只畫兩個勾就被丟掉的點單紙，也值得被重新設計。</h2><p>我們在餐廳現場看見：許多紙本訂單只用來核對兩次，幾分鐘後就成為垃圾。Rootable 先把無紙點餐、現金收款與店家接單免費開放，讓小店不用先承擔成本，也能從每天少印幾張單開始。</p><div><span>無紙點餐永遠可免費開始</span><span>現金訂單 0 月租、0 抽成</span><span>付費功能保持自由選擇</span></div></div>
+        <div className="mission-proof" aria-label="無紙化價值"><p>我們先衡量真正發生的改變</p><strong>少印的訂單張數</strong><span>不先換算成「救了幾棵樹」，避免誇大；店家後台會直接呈現本月完成的無紙訂單，讓成果可以核對。</span><a href="/merchant">查看店家實際流程</a></div>
+      </section>
+
       <section className="payment-section" id="pricing">
         <div className="section-intro light"><p className="eyebrow">店家看得懂的三種訂單</p><h2>自己帶來的客人低費率，Rootable 帶來新客才收導流費。</h2><p>顧客不加價，店家不用先付月租；每一張訂單都標示來源、費率與預計實收。</p></div>
         <div className="pricing-grid">
@@ -86,6 +91,7 @@ export default function Home() {
           <article className="price-card featured"><span className="recommended">店內最省事</span><p className="price-kicker">店內直客・行動支付</p><h3>掃碼、付款、對帳一次完成</h3><strong>3.9%<small>／成功交易，未稅</small></strong><ul><li>LINE Pay／Apple Pay 模擬流程</li><li>顧客端不加收平台費</li><li>付款狀態與訂單自動對應</li><li>每月結算與明細報表</li></ul><a className="button button-primary" href="/merchant">查看結算後台</a></article>
           <article className="price-card acquisition"><span className="recommended">只收真正帶來的生意</span><p className="price-kicker">森藏發現・新客導流</p><h3>從 Rootable 找到店家並下單</h3><strong>15%<small>／歸因成功訂單</small></strong><ul><li>森藏選品與探店頁曝光</li><li>只計算平台帶來的訂單</li><li>店內桌牌掃碼不算導流</li><li>後台可逐筆查看歸因依據</li></ul><a className="button button-secondary" href="#attribution">查看怎麼判定</a></article>
         </div>
+        <div className="growth-plan-note"><div><p className="price-kicker">可選的營運成長方案</p><h3>8% 不只是收款，而是把回訪與省工一起交付。</h3><p>若店家開啟會員、集點、優惠券、顧客通知與回訪、自動對帳及進階報表，可選 8% 成長服務費；只需要付款確認與月結的店家，仍保留 3.9% 基本代支付。</p></div><ul><li>自動確認付款與訂單</li><li>不必人工對帳</li><li>顧客通知與回訪</li><li>會員、集點與優惠券</li><li>降低櫃台工作與漏單</li><li>清楚的日結、月結報表</li></ul></div>
         <p className="pricing-footnote">目前為試營運模擬付款。正式代支付將串接合規支付夥伴，由支付夥伴完成店家審查、價金保管與撥款；Rootable 不自行把多店款項混入一般公司帳戶。</p>
       </section>
 
