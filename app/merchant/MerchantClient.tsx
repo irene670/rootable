@@ -258,6 +258,7 @@ export default function MerchantClient() {
               <article><span>Rootable 服務費</span><b>− {money(fees)}</b><small>試營運費率 3.9%</small></article>
               <article><span>顧客加價</span><b>NT$ 0</b><small>費用由店家負擔</small></article>
             </div>
+            <div className="settlement-source-card"><header><div><p>本期訂單來源</p><h2>店內直客</h2></div><strong>3.9%</strong></header><dl><div><dt>歸因依據</dt><dd>桌牌 QR／店家分享連結</dd></div><div><dt>森藏導流訂單</dt><dd>0 筆</dd></div><div><dt>重複抽成</dt><dd>沒有</dd></div></dl><p>若訂單由森藏探索或 Rootable 推薦帶來，會在明細標示「平台導流 15%」；15% 已包含代支付，不再加收 3.9%。</p></div>
             <div className="settlement-detail"><h2>結算規則</h2><ol><li><b>每月彙整</b><span>彙整上月已付款且無退款爭議的訂單。</span></li><li><b>費用透明</b><span>交易款、手續費與店家實收分開列示。</span></li><li><b>固定撥款</b><span>每月 10 日撥付上一結算週期款項。</span></li></ol><p className="demo-notice">目前為模擬代支付，不會產生真實撥款。</p></div>
           </section>
         )}

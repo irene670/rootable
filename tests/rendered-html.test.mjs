@@ -20,8 +20,10 @@ test("server-renders the Rootable product landing page", async () => {
   const html = await response.text();
   assert.match(html, /Rootable 森根/);
   assert.match(html, /一張 QR Code/);
-  assert.match(html, /現金模式/);
+  assert.match(html, /店內直客・現金/);
   assert.match(html, /Rootable 代支付/);
+  assert.match(html, /森藏發現・新客導流/);
+  assert.match(html, /歸因成功訂單/);
   assert.match(html, /href="\/menu"/);
   assert.match(html, /href="\/merchant"/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|SkeletonPreview/);

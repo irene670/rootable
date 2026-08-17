@@ -31,3 +31,19 @@ test("AI menu and merchant draft workflows preserve review and publishing bounda
   assert.match(merchant, /previewOrdering=/);
   assert.match(merchant, /確定要從草稿移除/);
 });
+
+test("pricing keeps direct orders separate from marketplace-attributed orders", async () => {
+  const [landing, studio, orders] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/merchant/MerchantStudioClient.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/merchant/MerchantClient.tsx", import.meta.url), "utf8"),
+  ]);
+  for (const source of [landing, studio]) {
+    assert.match(source, /店內直客/);
+    assert.match(source, /3\.9%/);
+    assert.match(source, /15%/);
+    assert.match(source, /不再另外加(?:收)? 3\.9%/);
+  }
+  assert.match(orders, /歸因依據/);
+  assert.match(orders, /森藏導流訂單/);
+});
