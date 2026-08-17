@@ -37,9 +37,9 @@ export default async (request: Request) => {
     const storeId = (payload.storeId || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80);
     if (storeId.length < 3) return json({ error: "缺少店家識別資料" }, 400);
     if (!payload.mimeType || !imageTypes.has(payload.mimeType)) return json({ error: "只支援 JPG、PNG 或 WebP 圖片" }, 400);
-    if (!payload.imageBase64 || payload.imageBase64.length > 1_100_000) return json({ error: "餐點圖片為空白或超過 800KB" }, 413);
+    if (!payload.imageBase64 || payload.imageBase64.length > 1_900_000) return json({ error: "餐點圖片為空白或超過 1.4MB" }, 413);
     const bytes = Buffer.from(payload.imageBase64, "base64");
-    if (!bytes.length || bytes.length > 800_000) return json({ error: "餐點圖片大小不正確" }, 413);
+    if (!bytes.length || bytes.length > 1_400_000) return json({ error: "餐點圖片大小不正確" }, 413);
     const data = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
     const id = `${storeId}/${crypto.randomUUID()}.${imageExtensions[payload.mimeType]}`;
     await images().set(id, data, { metadata: { contentType: payload.mimeType, storeId, createdAt: new Date().toISOString() }, onlyIfNew: true });

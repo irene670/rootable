@@ -53,14 +53,10 @@ test("renders the multi-merchant storefront, scan introduction, reservation, and
   ]);
   for (const response of [storeResponse, orderResponse, reserveResponse, startResponse, workbenchResponse]) assert.equal(response.status, 200);
   const [store, order, reserve, start, workbench] = await Promise.all([storeResponse.text(), orderResponse.text(), reserveResponse.text(), startResponse.text(), workbenchResponse.text()]);
-  assert.match(store, /把日常好好煮成一頓飯/);
-  assert.match(store, /內用掃碼點餐/);
-  assert.match(store, /完成訂單的顧客怎麼說/);
-  assert.match(order, /營業中・可接受點餐/);
-  assert.match(order, /桌號 A03/);
-  assert.match(order, /查看菜單並開始點餐/);
-  assert.match(reserve, /一般訂位免訂金/);
-  assert.match(reserve, /取消規則/);
+  for (const customerRoute of [store, order, reserve]) {
+    assert.match(customerRoute, /正在準備店家菜單/);
+    assert.doesNotMatch(customerRoute, /把日常好好煮成一頓飯/);
+  }
   assert.match(start, /最快 10 分鐘上線/);
   assert.match(start, /免費開店・不用綁卡/);
   assert.match(workbench, /接單工作台/);
