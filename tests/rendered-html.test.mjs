@@ -33,10 +33,9 @@ test("exposes the customer and merchant product routes", async () => {
   assert.equal(merchantResponse.status, 200);
   const [menu, merchant] = await Promise.all([menuResponse.text(), merchantResponse.text()]);
   assert.match(menu, /森日小館/);
-  assert.match(menu, /手機點餐/);
-  assert.match(menu, /炙燒照燒雞腿定食/);
-  assert.match(menu, /味噌豆乳野菜拉麵/);
-  assert.match(menu, /宇治抹茶歐蕾/);
+  assert.match(menu, /歡迎使用桌邊點餐/);
+  assert.match(menu, /內用・餐點送到桌/);
+  assert.match(menu, /開始點餐/);
   assert.match(menu, /\/menu\/chicken\.jpg/);
   assert.match(menu, /<meta property="og:title" content="森日小館｜手機點餐">/);
   assert.match(menu, /<meta name="twitter:title" content="森日小館｜手機點餐">/);
