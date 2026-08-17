@@ -1219,14 +1219,17 @@ button:disabled { cursor:not-allowed; opacity:.55; }
 .ticket-time span { margin-top:3px; color:var(--muted); font-size:8px; }
 .is-urgent .ticket-time { color:#a43a32; }
 .ticket-flags { padding:8px 10px 0; display:flex; flex-wrap:wrap; gap:5px; }
-.ticket-flags .status-badge,.ticket-flags .payment-badge {
+.ticket-flags .status-badge,.ticket-flags .payment-badge,.ticket-flags .source-badge {
   padding:4px 7px;
   border-radius:6px;
   font-size:9px;
+  font-weight:800;
 }
 .ticket-flags .status-new { background:#fff0dc; color:#824915; }
 .ticket-flags .status-preparing,.ticket-flags .status-accepted { background:#e7f0f8; color:#315d80; }
 .ticket-flags .status-ready { background:#dff2e4; color:#246641; }
+.ticket-flags .source-badge.direct { background:#edf0ec; color:#5f6d66; }
+.ticket-flags .source-badge.marketplace { background:#f5ddc3; color:#7b4a20; }
 .ticket-items { padding:8px 10px 10px; display:grid; gap:6px; }
 .ticket-items>div { display:grid; grid-template-columns:26px 1fr; gap:7px; align-items:start; }
 .ticket-items>div b {

@@ -33,10 +33,12 @@ test("AI menu and merchant draft workflows preserve review and publishing bounda
 });
 
 test("pricing keeps direct orders separate from marketplace-attributed orders", async () => {
-  const [landing, studio, orders] = await Promise.all([
+  const [landing, studio, orders, storefront, orderApi] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/merchant/MerchantStudioClient.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/merchant/MerchantClient.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/storefront/StorefrontClient.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../netlify/functions/orders.ts", import.meta.url), "utf8"),
   ]);
   for (const source of [landing, studio]) {
     assert.match(source, /店內直客/);
@@ -44,6 +46,10 @@ test("pricing keeps direct orders separate from marketplace-attributed orders", 
     assert.match(source, /15%/);
     assert.match(source, /不再另外加(?:收)? 3\.9%/);
   }
-  assert.match(orders, /歸因依據/);
+  assert.match(orders, /直客歸因/);
   assert.match(orders, /森藏導流訂單/);
+  assert.match(storefront, /params\.get\("source"\) === "marketplace"/);
+  assert.match(storefront, /orderSource,/);
+  assert.match(orderApi, /orderSource === "rootable_marketplace" \? 0\.15/);
+  assert.match(orderApi, /feeRate/);
 });

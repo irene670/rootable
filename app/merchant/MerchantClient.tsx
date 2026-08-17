@@ -18,6 +18,8 @@ type Order = {
   platformFee: number;
   merchantPayout: number;
   customerNote: string;
+  orderSource?: "direct" | "rootable_marketplace";
+  feeRate?: number;
   createdAt: string;
   items: OrderItem[];
 };
@@ -122,6 +124,7 @@ export default function MerchantClient() {
     return Array.from(totals.entries()).sort((a, b) => b[1] - a[1]).slice(0, 4);
   }, [activeOrders]);
   const payOrders = orders.filter((order) => order.paymentMethod === "rootable_pay" && order.paymentStatus === "paid");
+  const marketplaceOrders = orders.filter((order) => order.orderSource === "rootable_marketplace" || order.customerNote.startsWith("【平台導流】"));
   const gross = payOrders.reduce((sum, order) => sum + order.subtotal, 0);
   const fees = payOrders.reduce((sum, order) => sum + order.platformFee, 0);
   const payout = gross - fees;
@@ -138,6 +141,8 @@ export default function MerchantClient() {
 
   const renderOrder = (order: Order, history = false) => {
     const minutes = elapsedMinutes(order.createdAt);
+    const marketplace = order.orderSource === "rootable_marketplace" || order.customerNote.startsWith("【平台導流】");
+    const visibleNote = order.customerNote.replace(/^【平台導流】/, "");
     return (
       <article className={`kds-ticket status-${order.status} ${minutes >= 15 && !history ? "is-urgent" : ""}`} key={order.id}>
         <header className="ticket-header">
@@ -149,6 +154,7 @@ export default function MerchantClient() {
         <div className="ticket-flags">
           <span className={`status-badge status-${order.status}`}>{labels[order.status]}</span>
           <span className={`payment-badge ${order.paymentStatus}`}>{paymentLabel(order)}</span>
+          <span className={`source-badge ${marketplace ? "marketplace" : "direct"}`}>{marketplace ? "森藏導流・15%" : "店內直客"}</span>
         </div>
 
         <div className="ticket-items">
@@ -157,7 +163,7 @@ export default function MerchantClient() {
           ))}
         </div>
 
-        {order.customerNote && <p className="order-note"><b>顧客備註</b>{order.customerNote}</p>}
+        {visibleNote && <p className="order-note"><b>顧客備註</b>{visibleNote}</p>}
 
         <footer className="ticket-footer">
           <div className="ticket-total"><span>訂單金額</span><b>{money(order.subtotal)}</b></div>
@@ -258,7 +264,7 @@ export default function MerchantClient() {
               <article><span>Rootable 服務費</span><b>− {money(fees)}</b><small>試營運費率 3.9%</small></article>
               <article><span>顧客加價</span><b>NT$ 0</b><small>費用由店家負擔</small></article>
             </div>
-            <div className="settlement-source-card"><header><div><p>本期訂單來源</p><h2>店內直客</h2></div><strong>3.9%</strong></header><dl><div><dt>歸因依據</dt><dd>桌牌 QR／店家分享連結</dd></div><div><dt>森藏導流訂單</dt><dd>0 筆</dd></div><div><dt>重複抽成</dt><dd>沒有</dd></div></dl><p>若訂單由森藏探索或 Rootable 推薦帶來，會在明細標示「平台導流 15%」；15% 已包含代支付，不再加收 3.9%。</p></div>
+            <div className="settlement-source-card"><header><div><p>本期訂單來源</p><h2>{marketplaceOrders.length ? "直客＋平台導流" : "店內直客"}</h2></div><strong>{marketplaceOrders.length ? "逐筆" : "3.9%"}</strong></header><dl><div><dt>直客歸因</dt><dd>桌牌 QR／店家分享連結</dd></div><div><dt>森藏導流訂單</dt><dd>{marketplaceOrders.length} 筆</dd></div><div><dt>重複抽成</dt><dd>沒有</dd></div></dl><p>平台導流會在訂單標示 15%；15% 已包含代支付，不再加收 3.9%。店家可用含 source=marketplace 的活動連結測試歸因。</p></div>
             <div className="settlement-detail"><h2>結算規則</h2><ol><li><b>每月彙整</b><span>彙整上月已付款且無退款爭議的訂單。</span></li><li><b>費用透明</b><span>交易款、手續費與店家實收分開列示。</span></li><li><b>固定撥款</b><span>每月 10 日撥付上一結算週期款項。</span></li></ol><p className="demo-notice">目前為模擬代支付，不會產生真實撥款。</p></div>
           </section>
         )}

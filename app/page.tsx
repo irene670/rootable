@@ -98,7 +98,7 @@ export default function Home() {
           <div className="attributed" role="row"><span role="cell"><b>森藏探索／Rootable 推薦</b><small>平台實際帶來的新訂單</small></span><span role="cell">現金或行動支付</span><strong role="cell">15%</strong></div>
         </div>
         <div className="attribution-rules">
-          <article><span>01</span><h3>有憑據</h3><p>後台顯示來源頁、進站時間與下單時間，店家可以逐筆核對。</p></article>
+          <article><span>01</span><h3>有憑據</h3><p>後台會在每張訂單標示「店內直客」或「森藏導流」，並保留下單時間供店家核對。</p></article>
           <article><span>02</span><h3>不重複抽</h3><p>導流訂單的 15% 已包含平台與代支付服務，不再另外加 3.9%。</p></article>
           <article><span>03</span><h3>不永久綁定</h3><p>同一位顧客之後回店掃桌牌，回到直客費率，不把熟客永遠算成平台客。</p></article>
         </div>

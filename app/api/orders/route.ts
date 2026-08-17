@@ -14,7 +14,10 @@ export async function GET(request: Request) {
     const db = getDb();
     const rows = await db.select().from(orders).where(eq(orders.storeId, storeId)).orderBy(desc(orders.createdAt)).limit(80);
     const hydrated = await Promise.all(rows.map(async (order) => ({
-      ...order, items: await db.select().from(orderItems).where(eq(orderItems.orderId, order.id)),
+      ...order,
+      orderSource: order.customerNote.startsWith("【平台導流】") ? "rootable_marketplace" : "direct",
+      feeRate: order.customerNote.startsWith("【平台導流】") ? 0.15 : order.paymentMethod === "rootable_pay" ? 0.039 : 0,
+      items: await db.select().from(orderItems).where(eq(orderItems.orderId, order.id)),
     })));
     return Response.json({ orders: hydrated });
   } catch (error) {
@@ -27,7 +30,7 @@ export async function POST(request: Request) {
     await ensureOrderSchema();
     const payload = (await request.json()) as {
       storeId?: string; tableNo?: string; paymentMethod?: string; paymentChannel?: string;
-      customerNote?: string; items?: IncomingItem[];
+      customerNote?: string; orderSource?: string; items?: IncomingItem[];
     };
     const items = (payload.items ?? []).filter((item) =>
       item.productId && item.productName && Number.isInteger(item.quantity) && Number(item.quantity) > 0 && Number.isInteger(item.unitPrice) && Number(item.unitPrice) > 0
@@ -37,7 +40,9 @@ export async function POST(request: Request) {
     if (!["cash", "line_pay", "apple_pay"].includes(payload.paymentChannel ?? "")) return Response.json({ error: "付款管道不正確" }, { status: 400 });
 
     const subtotal = items.reduce((sum, item) => sum + Number(item.unitPrice) * Number(item.quantity), 0);
-    const platformFee = payload.paymentMethod === "rootable_pay" ? Math.round(subtotal * 0.039) : 0;
+    const isMarketplace = payload.orderSource === "rootable_marketplace";
+    const feeRate = isMarketplace ? 0.15 : payload.paymentMethod === "rootable_pay" ? 0.039 : 0;
+    const platformFee = Math.round(subtotal * feeRate);
     const id = crypto.randomUUID();
     const orderNo = `R${Date.now().toString().slice(-7)}`;
     const isPaid = payload.paymentMethod === "rootable_pay";
@@ -46,13 +51,13 @@ export async function POST(request: Request) {
       id, orderNo, storeId: payload.storeId || "senri-demo", tableNo: payload.tableNo.trim(), status: "new",
       paymentMethod: payload.paymentMethod!, paymentChannel: payload.paymentChannel!, paymentStatus: isPaid ? "paid" : "unpaid",
       settlementStatus: isPaid ? "pending" : "not_applicable", subtotal, platformFee,
-      merchantPayout: subtotal - platformFee, customerNote: payload.customerNote?.trim() || "",
+      merchantPayout: subtotal - platformFee, customerNote: `${isMarketplace ? "【平台導流】" : ""}${payload.customerNote?.trim() || ""}`,
     });
     await db.insert(orderItems).values(items.map((item) => ({
       orderId: id, productId: item.productId!, productName: item.productName!, quantity: Number(item.quantity), unitPrice: Number(item.unitPrice),
     })));
     const [order] = await db.select().from(orders).where(eq(orders.id, id));
-    return Response.json({ order: { ...order, items } }, { status: 201 });
+    return Response.json({ order: { ...order, orderSource: isMarketplace ? "rootable_marketplace" : "direct", feeRate, items } }, { status: 201 });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "建立訂單失敗" }, { status: 500 });
   }

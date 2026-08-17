@@ -137,10 +137,11 @@ function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecor
   const [pickupTime, setPickupTime] = useState("17:30");
   const [tableNo, setTableNo] = useState("A03");
   const [note, setNote] = useState("");
+  const [orderSource, setOrderSource] = useState<"direct" | "rootable_marketplace">("direct");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [created, setCreated] = useState<CreatedOrder | null>(null);
-  useEffect(() => { if (previewOrdering) return; const timer = window.setTimeout(() => { const params = new URLSearchParams(window.location.search); const scanned = params.get("table"); if (scanned) setTableNo(scanned.slice(0, 12)); const saved = sessionStorage.getItem(`rootable-identity-${store.slug}`); if (saved) setIdentity(JSON.parse(saved) as Identity); const savedCart = sessionStorage.getItem(`rootable-cart-${store.slug}-${mode}`); if (savedCart) { try { setCart(JSON.parse(savedCart) as CartLine[]); } catch { sessionStorage.removeItem(`rootable-cart-${store.slug}-${mode}`); } } }, 0); return () => window.clearTimeout(timer); }, [mode, previewOrdering, store.slug]);
+  useEffect(() => { if (previewOrdering) return; const timer = window.setTimeout(() => { const params = new URLSearchParams(window.location.search); const scanned = params.get("table"); if (scanned) setTableNo(scanned.slice(0, 12)); if (params.get("source") === "marketplace") setOrderSource("rootable_marketplace"); const saved = sessionStorage.getItem(`rootable-identity-${store.slug}`); if (saved) setIdentity(JSON.parse(saved) as Identity); const savedCart = sessionStorage.getItem(`rootable-cart-${store.slug}-${mode}`); if (savedCart) { try { setCart(JSON.parse(savedCart) as CartLine[]); } catch { sessionStorage.removeItem(`rootable-cart-${store.slug}-${mode}`); } } }, 0); return () => window.clearTimeout(timer); }, [mode, previewOrdering, store.slug]);
   useEffect(() => { if (!previewOrdering) sessionStorage.setItem(`rootable-cart-${store.slug}-${mode}`, JSON.stringify(cart)); }, [cart, mode, previewOrdering, store.slug]);
   useEffect(() => { if (checkout) window.scrollTo({ top: 0, behavior: "auto" }); }, [checkout]);
   const recommended = useMemo(() => recommendedProducts(store.products), [store.products]);
@@ -154,7 +155,7 @@ function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecor
   const submit = async () => {
     setLoading(true); setError("");
     try {
-      const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ storeId: store.storeId, tableNo: mode === "order" ? tableNo : `外帶 ${pickupTime}`, paymentMethod: payment === "cash" ? "cash" : "rootable_pay", paymentChannel: payment, customerNote: `${identity?.label || ""}${note ? `｜${note}` : ""}`, items: cart.map((line) => ({ productId: line.product.id, productName: `${line.product.name}${line.optionLabel ? `（${line.optionLabel}）` : ""}`, quantity: line.quantity, unitPrice: line.unitPrice })) }) });
+      const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ storeId: store.storeId, tableNo: mode === "order" ? tableNo : `外帶 ${pickupTime}`, paymentMethod: payment === "cash" ? "cash" : "rootable_pay", paymentChannel: payment, orderSource, customerNote: `${identity?.label || ""}${note ? `｜${note}` : ""}`, items: cart.map((line) => ({ productId: line.product.id, productName: `${line.product.name}${line.optionLabel ? `（${line.optionLabel}）` : ""}`, quantity: line.quantity, unitPrice: line.unitPrice })) }) });
       const result = await response.json() as { order?: CreatedOrder; error?: string }; if (!response.ok || !result.order) throw new Error(result.error || "訂單送出失敗"); sessionStorage.removeItem(`rootable-cart-${store.slug}-${mode}`); setCreated(result.order);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "訂單服務暫時無法使用"); } finally { setLoading(false); }
   };

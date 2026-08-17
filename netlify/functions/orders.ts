@@ -32,6 +32,8 @@ type Order = {
   platformFee: number;
   merchantPayout: number;
   customerNote: string;
+  orderSource: "direct" | "rootable_marketplace";
+  feeRate: number;
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
@@ -61,6 +63,7 @@ async function createOrder(request: Request) {
     paymentMethod?: string;
     paymentChannel?: string;
     customerNote?: string;
+    orderSource?: string;
     items?: IncomingItem[];
   };
   const items = (payload.items ?? []).filter((item): item is OrderItem =>
@@ -79,7 +82,9 @@ async function createOrder(request: Request) {
   if (!new Set(["cash", "line_pay", "apple_pay"]).has(payload.paymentChannel ?? "")) return json({ error: "付款管道不正確" }, 400);
 
   const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const platformFee = payload.paymentMethod === "rootable_pay" ? Math.round(subtotal * 0.039) : 0;
+  const orderSource = payload.orderSource === "rootable_marketplace" ? "rootable_marketplace" : "direct";
+  const feeRate = orderSource === "rootable_marketplace" ? 0.15 : payload.paymentMethod === "rootable_pay" ? 0.039 : 0;
+  const platformFee = Math.round(subtotal * feeRate);
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
   const order: Order = {
@@ -96,6 +101,8 @@ async function createOrder(request: Request) {
     platformFee,
     merchantPayout: subtotal - platformFee,
     customerNote: payload.customerNote?.trim() || "",
+    orderSource,
+    feeRate,
     createdAt,
     updatedAt: createdAt,
     items,
