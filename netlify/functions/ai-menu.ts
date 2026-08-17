@@ -1,6 +1,4 @@
-import { createHash } from "node:crypto";
 import { GoogleGenAI } from "@google/genai";
-import { getStore } from "@netlify/blobs";
 import type { Config } from "@netlify/functions";
 import { normalizeAiMenu } from "../../platform/ai-menu";
 
@@ -8,25 +6,12 @@ const MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const json = (data: unknown, status = 200) => Response.json(data, { status, headers: { "Cache-Control": "no-store", "Content-Type": "application/json; charset=utf-8" } });
 
-async function withinRateLimit(request: Request) {
-  const forwarded = request.headers.get("x-nf-client-connection-ip") || request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
-  const fingerprint = createHash("sha256").update(forwarded.trim()).digest("hex").slice(0, 24);
-  const hour = new Date().toISOString().slice(0, 13);
-  const key = `${hour}/${fingerprint}`;
-  const storage = getStore({ name: "rootable-ai-rate-limit", consistency: "strong" });
-  const current = await storage.get(key, { type: "json", consistency: "strong" }) as { count?: number } | null;
-  if ((current?.count || 0) >= 5) return false;
-  await storage.setJSON(key, { count: (current?.count || 0) + 1 });
-  return true;
-}
-
 export default async (request: Request) => {
   if (request.method !== "POST") return json({ error: "只接受菜單照片上傳" }, 405);
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin) return json({ error: "不允許跨站上傳" }, 403);
   if (!process.env.GEMINI_API_KEY) return json({ error: "AI 菜單功能尚未完成伺服器設定" }, 503);
   try {
-    if (!await withinRateLimit(request)) return json({ error: "本裝置本小時已達 5 次辨識上限，請稍後再試" }, 429);
     const payload = await request.json() as { imageBase64?: string; mimeType?: string; storeId?: string };
     if (!payload.storeId?.trim()) return json({ error: "缺少店家識別資料" }, 400);
     if (!payload.mimeType || !allowedTypes.has(payload.mimeType)) return json({ error: "只支援 JPG、PNG 或 WebP 圖片" }, 400);
