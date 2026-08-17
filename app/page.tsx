@@ -1,4 +1,4 @@
-import Link from "next/link";
+/* eslint-disable @next/next/no-html-link-for-pages -- Native anchors avoid the deployed Vinext Link runtime crash. */
 
 export const metadata = {
   title: "Rootable 森根｜讓小店從一張 QR Code 開始數位化",
@@ -15,14 +15,14 @@ export default function Home() {
   return (
     <main>
       <header className="site-header">
-        <Link className="brand" href="/" aria-label="Rootable 森根首頁">
+        <a className="brand" href="/" aria-label="Rootable 森根首頁">
           <span className="brand-mark" aria-hidden="true">R</span>
           <span>Rootable <b>森根</b></span>
-        </Link>
+        </a>
         <nav aria-label="主要導覽">
           <a href="#how">怎麼運作</a>
           <a href="#pricing">收費方式</a>
-          <Link className="header-cta" href="/merchant">店家試用</Link>
+          <a className="header-cta" href="/merchant">店家試用</a>
         </nav>
       </header>
 
@@ -34,8 +34,8 @@ export default function Home() {
             不用換 POS，也不用先學複雜系統。顧客手機掃碼完成點餐，店家在平板立即接單；收現金或開通代支付，都能用同一套流程完成。
           </p>
           <div className="hero-actions">
-            <Link className="button button-primary" href="/menu">體驗顧客點餐</Link>
-            <Link className="button button-secondary" href="/merchant">查看店家接單</Link>
+            <a className="button button-primary" href="/menu">體驗顧客點餐</a>
+            <a className="button button-secondary" href="/merchant">查看店家接單</a>
           </div>
           <div className="trust-row" aria-label="服務特色">
             <span>免費開店</span><span>現金也能用</span><span>免換既有 POS</span>
@@ -81,8 +81,8 @@ export default function Home() {
       <section className="payment-section" id="pricing">
         <div className="section-intro light"><p className="eyebrow">讓店家願意用的收費</p><h2>先免費解決日常，再從真正省事的交易收費。</h2><p>顧客不加價，店家也不必先承擔月租。需要代支付時，才按成功交易計費。</p></div>
         <div className="pricing-grid">
-          <article className="price-card"><p className="price-kicker">現金模式</p><h3>免費開始</h3><strong>0<small> 元／月</small></strong><ul><li>QR Code 菜單與點餐</li><li>平板接單與進度管理</li><li>店家現場自行收現</li><li>不抽現金訂單手續費</li></ul><Link className="button button-secondary" href="/menu">體驗現金點餐</Link></article>
-          <article className="price-card featured"><span className="recommended">建議試營運方案</span><p className="price-kicker">Rootable 代支付</p><h3>有交易才付費</h3><strong>3.9%<small>／成功交易，未稅</small></strong><ul><li>LINE Pay／Apple Pay 模擬流程</li><li>顧客端不加收服務費</li><li>付款狀態與訂單自動對應</li><li>每月結算與明細報表</li></ul><Link className="button button-primary" href="/merchant">查看結算後台</Link></article>
+          <article className="price-card"><p className="price-kicker">現金模式</p><h3>免費開始</h3><strong>0<small> 元／月</small></strong><ul><li>QR Code 菜單與點餐</li><li>平板接單與進度管理</li><li>店家現場自行收現</li><li>不抽現金訂單手續費</li></ul><a className="button button-secondary" href="/menu">體驗現金點餐</a></article>
+          <article className="price-card featured"><span className="recommended">建議試營運方案</span><p className="price-kicker">Rootable 代支付</p><h3>有交易才付費</h3><strong>3.9%<small>／成功交易，未稅</small></strong><ul><li>LINE Pay／Apple Pay 模擬流程</li><li>顧客端不加收服務費</li><li>付款狀態與訂單自動對應</li><li>每月結算與明細報表</li></ul><a className="button button-primary" href="/merchant">查看結算後台</a></article>
         </div>
         <p className="pricing-footnote">前 30 家示範店可採 90 天 3.5% 試營運費率；正式金流上線前，將由完成法遵登錄的支付夥伴處理價金保管與支付。</p>
       </section>
@@ -92,9 +92,9 @@ export default function Home() {
         <div className="ecosystem-map" aria-label="Rootable 生態系"><div className="root-node"><b>Rootable 森根</b><span>點餐・接單・收款</span></div><div><b>森藏 SENZO</b><span>餐券與會員交易</span></div><div><b>SeedLab</b><span>探店與內容導流</span></div><div><b>東瑭</b><span>桌牌與現場物料</span></div></div>
       </section>
 
-      <section className="final-cta"><p className="eyebrow">90 天試營運</p><h2>先讓 30 家小店真的用起來。</h2><p>顧客掃碼下單、店家平板接單、現金與代支付並行。從一條完整流程開始驗證。</p><div><Link className="button button-primary" href="/menu">體驗顧客點餐</Link><Link className="button button-secondary" href="/merchant">開啟店家平板</Link></div></section>
+      <section className="final-cta"><p className="eyebrow">90 天試營運</p><h2>先讓 30 家小店真的用起來。</h2><p>顧客掃碼下單、店家平板接單、現金與代支付並行。從一條完整流程開始驗證。</p><div><a className="button button-primary" href="/menu">體驗顧客點餐</a><a className="button button-secondary" href="/merchant">開啟店家平板</a></div></section>
 
-      <footer className="site-footer"><Link className="brand" href="/"><span className="brand-mark">R</span><span>Rootable <b>森根</b></span></Link><p>讓每間小店，都能用自己的步調長出數位根系。</p><span>試營運版本・模擬付款</span></footer>
+      <footer className="site-footer"><a className="brand" href="/"><span className="brand-mark">R</span><span>Rootable <b>森根</b></span></a><p>讓每間小店，都能用自己的步調長出數位根系。</p><span>試營運版本・模擬付款</span></footer>
     </main>
   );
 }

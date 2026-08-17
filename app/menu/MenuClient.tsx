@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+/* eslint-disable @next/next/no-html-link-for-pages -- Native anchors avoid the deployed Vinext Link runtime crash. */
+
 import { useMemo, useState } from "react";
 
 const products = [
@@ -77,7 +78,7 @@ export default function MenuClient() {
             <span><small>付款</small><b>{createdOrder.paymentStatus === "paid" ? "已完成（模擬）" : "現場付現"}</b></span>
           </div>
           <p className="demo-notice">這是試營運模擬付款，不會產生真實扣款。</p>
-          <Link className="button button-primary" href="/merchant">到店家平板查看訂單</Link>
+          <a className="button button-primary" href="/merchant">到店家平板查看訂單</a>
           <button className="text-button" onClick={() => { setCart({}); setStep("menu"); setCreatedOrder(null); }}>再下一筆訂單</button>
         </section>
       </main>
@@ -126,7 +127,7 @@ export default function MenuClient() {
 
   return (
     <main className="menu-page">
-      <header className="menu-hero"><Link className="mini-brand" href="/">Rootable 森根</Link><div><p className="eyebrow">Rootable 店家</p><h1>森日小館</h1><p>高雄鹽埕・日常定食與咖啡</p></div><div className="table-chip">桌號 <b>A03</b></div></header>
+      <header className="menu-hero"><a className="mini-brand" href="/">Rootable 森根</a><div><p className="eyebrow">Rootable 店家</p><h1>森日小館</h1><p>高雄鹽埕・日常定食與咖啡</p></div><div className="table-chip">桌號 <b>A03</b></div></header>
       <nav className="category-tabs" aria-label="菜單分類">{["全部", "主餐", "飲品", "甜點"].map((item) => <button className={category === item ? "active" : ""} onClick={() => setCategory(item)} key={item}>{item}</button>)}</nav>
       <section className="menu-content" aria-labelledby="menu-title">
         <div className="section-heading"><div><p className="eyebrow">今日菜單</p><h2 id="menu-title">慢慢吃，好好生活。</h2></div><p>餐點皆為現點現做，約 15–20 分鐘。</p></div>

@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+/* eslint-disable @next/next/no-html-link-for-pages -- Native anchors avoid the deployed Vinext Link runtime crash. */
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type OrderItem = { id?: number; productName: string; quantity: number; unitPrice: number };
@@ -64,21 +65,21 @@ export default function MerchantClient() {
   return (
     <main className="merchant-page">
       <aside className="merchant-sidebar">
-        <Link className="brand merchant-brand" href="/"><span className="brand-mark">R</span><span>Rootable <b>森根</b></span></Link>
+        <a className="brand merchant-brand" href="/"><span className="brand-mark">R</span><span>Rootable <b>森根</b></span></a>
         <nav className="merchant-nav" aria-label="店家後台導覽">
           <button className="active"><span>01</span>即時訂單</button><button><span>02</span>菜單管理</button><button><span>03</span>代支付結算</button><button><span>04</span>店家設定</button>
         </nav>
         <div className="store-card"><span className="store-avatar">森</span><div><b>森日小館</b><small>高雄鹽埕・試營運店</small></div></div>
       </aside>
       <section className="merchant-main">
-        <header className="merchant-topbar"><div><p className="eyebrow">即時營運</p><h1>訂單中心</h1></div><div className="merchant-actions"><span className="live-pill">每 5 秒同步</span><Link className="button button-secondary" href="/menu">開啟顧客點餐</Link></div></header>
+        <header className="merchant-topbar"><div><p className="eyebrow">即時營運</p><h1>訂單中心</h1></div><div className="merchant-actions"><span className="live-pill">每 5 秒同步</span><a className="button button-secondary" href="/menu">開啟顧客點餐</a></div></header>
         <div className="operations-grid">
           <section className="orders-panel">
             <div className="metric-row"><article><span>新訂單</span><b>{counts.new}</b><small>等待接單</small></article><article><span>進行中</span><b>{counts.preparing}</b><small>已接單／製作</small></article><article><span>可取餐</span><b>{counts.ready}</b><small>等待交付</small></article></div>
             <div className="order-toolbar"><div className="status-tabs" role="tablist" aria-label="訂單篩選">{[{ id: "active", label: "進行中" }, { id: "new", label: "新訂單" }, { id: "ready", label: "可取餐" }, { id: "completed", label: "已完成" }, { id: "all", label: "全部" }].map((tab) => <button role="tab" aria-selected={filter === tab.id} className={filter === tab.id ? "active" : ""} key={tab.id} onClick={() => setFilter(tab.id)}>{tab.label}</button>)}</div><button className="refresh-button" onClick={() => loadOrders()} disabled={loading}>重新整理</button></div>
             {error && <p className="form-error dashboard-error" role="alert">{error}</p>}
             <div className="merchant-order-list" aria-live="polite">
-              {loading ? <div className="dashboard-empty"><b>正在同步訂單…</b></div> : visibleOrders.length === 0 ? <div className="dashboard-empty"><b>目前沒有這個狀態的訂單</b><p>從顧客點餐頁送出一筆訂單，就會立即出現在這裡。</p><Link className="button button-primary" href="/menu">前往顧客點餐</Link></div> : visibleOrders.map((order) => <article className={`merchant-order status-${order.status}`} key={order.id}>
+              {loading ? <div className="dashboard-empty"><b>正在同步訂單…</b></div> : visibleOrders.length === 0 ? <div className="dashboard-empty"><b>目前沒有這個狀態的訂單</b><p>從顧客點餐頁送出一筆訂單，就會立即出現在這裡。</p><a className="button button-primary" href="/menu">前往顧客點餐</a></div> : visibleOrders.map((order) => <article className={`merchant-order status-${order.status}`} key={order.id}>
                 <header><div className="order-identity"><span>{order.tableNo}</span><div><b>{order.orderNo}</b><small>{new Date(order.createdAt).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" })}</small></div></div><div className="order-badges"><span className="status-badge">{labels[order.status]}</span><span className={`payment-badge ${order.paymentStatus}`}>{order.paymentMethod === "cash" ? (order.paymentStatus === "paid" ? "現金已收" : "現金待收") : `${order.paymentChannel === "line_pay" ? "LINE Pay" : "Apple Pay"} 已付`}</span></div></header>
                 <div className="merchant-order-items">{order.items.map((item, index) => <div key={`${item.productName}-${index}`}><b>{item.quantity}</b><span>{item.productName}</span><small>NT$ {item.quantity * item.unitPrice}</small></div>)}</div>
                 {order.customerNote && <p className="order-note"><b>備註</b>{order.customerNote}</p>}
