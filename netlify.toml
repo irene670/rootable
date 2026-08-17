@@ -27,6 +27,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/ai-menu"
+  to = "/.netlify/functions/ai-menu"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

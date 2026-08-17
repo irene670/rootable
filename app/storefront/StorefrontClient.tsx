@@ -17,6 +17,25 @@ const formatOptions = (product: MenuProduct, selections: Selection) => product.o
 const optionPrice = (product: MenuProduct, selections: Selection) => product.optionGroups.flatMap((group) => group.options).filter((option) => Object.values(selections).flat().includes(option.id)).reduce((sum, option) => sum + option.price, 0);
 const CloseIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6l12 12M18 6 6 18"/></svg>;
 const SearchIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>;
+const HeartIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>;
+
+function ScanStoreLanding({ store, mode, tableNo, onStart }: { store: StoreRecord; mode: "order" | "takeout"; tableNo: string; onStart: () => void }) {
+  const [favorited, setFavorited] = useState(false);
+  const preview = store.products.filter((product) => product.featured || product.badge).slice(0, 4);
+  const categories = Array.from(new Set(store.products.map((product) => product.category))).slice(0, 4);
+  return <main className="scan-store-shell" style={{ "--tenant-primary": store.profile.theme.primary, "--tenant-accent": store.profile.theme.accent } as React.CSSProperties}>
+    <section className="scan-store-page">
+      <div className="scan-store-hero"><img src={store.profile.coverImage} alt={`${store.profile.name}招牌餐點`}/><div className="scan-store-shade"/><nav><a href={`/s/${store.slug}`} aria-label="關閉並返回店家首頁"><CloseIcon/></a><div><button aria-label="搜尋餐點" onClick={onStart}><SearchIcon/></button><button className={favorited ? "favorited" : ""} aria-label={favorited ? "取消收藏店家" : "收藏店家"} aria-pressed={favorited} onClick={() => setFavorited((value) => !value)}><HeartIcon/></button></div></nav><div className="scan-store-hero-copy"><p>{store.profile.tagline}</p><span>今天想吃什麼？先看看店家的人氣餐點</span></div></div>
+      <div className="scan-store-logo" aria-hidden="true">{store.profile.logoText}</div>
+      <section className="scan-store-summary"><p className="scan-store-open">營業中・可接受點餐</p><h1>{store.profile.name}</h1><div className="scan-store-rating"><b>4.8 ★</b><span>（130+）</span><i>・</i><span>內用免服務費</span></div><p>{store.profile.announcement}</p></section>
+      <section className="scan-service-picker" aria-label="用餐方式"><a className={mode === "order" ? "active" : ""} href={`/s/${store.slug}/order?table=${encodeURIComponent(tableNo)}`}><b>⌑</b><span>內用</span><small>{mode === "order" ? `桌號 ${tableNo}` : "掃碼點餐"}</small></a><a className={mode === "takeout" ? "active" : ""} href={`/s/${store.slug}/takeout`}><b>▣</b><span>外帶</span><small>預約取餐</small></a><a href={`/s/${store.slug}/reserve`}><b>▤</b><span>訂位</span><small>線上預約</small></a></section>
+      <section className="scan-store-stats"><div><b>{mode === "order" ? tableNo : "最快 17:30"}</b><span>{mode === "order" ? "目前桌號" : "預約取餐"}</span></div><div><b>15–20 分鐘</b><span>預估出餐時間</span></div></section>
+      <section className="scan-menu-preview"><header><div><p>瀏覽菜單</p><h2>店內人氣餐點</h2></div><button onClick={onStart}>查看全部</button></header><nav aria-label="菜單分類"><button className="active">★ 精選</button>{categories.map((item) => <button key={item} onClick={onStart}>{item}</button>)}</nav><div>{preview.map((product, index) => <article key={product.id}><button onClick={onStart}><div><img src={product.image} alt={product.imageAlt}/>{index < 2 && <span>人氣第 {index + 1} 名</span>}<i>＋</i></div><h3>{product.name}</h3><b>{money(product.price)}</b><p>{product.description}</p></button></article>)}</div></section>
+      <section className="scan-store-note"><b>點餐前提醒</b><p>{mode === "order" ? `本次為桌號 ${tableNo} 內用點餐。送出後餐點會直接製作，若桌號不正確請先告知店員。` : "外帶餐點依選擇時間製作，送出前仍可確認取餐時間與付款方式。"}</p></section>
+      <footer className="scan-start-dock"><div><span>{mode === "order" ? `內用・桌號 ${tableNo}` : "預約外帶"}</span><small>顧客免平台服務費</small></div><button onClick={onStart}>查看菜單並開始點餐</button></footer>
+    </section>
+  </main>;
+}
 
 function IdentityGate({ onDone, storeName }: { onDone: (identity: Identity) => void; storeName: string }) {
   const [phone, setPhone] = useState("");
@@ -94,6 +113,7 @@ function StoreWebsite({ store, reviews }: { store: StoreRecord; reviews: Review[
 }
 
 function OrderFlow({ store, mode }: { store: StoreRecord; mode: "order" | "takeout" }) {
+  const [started, setStarted] = useState(false);
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [category, setCategory] = useState("熱門推薦");
   const [query, setQuery] = useState("");
@@ -121,6 +141,7 @@ function OrderFlow({ store, mode }: { store: StoreRecord; mode: "order" | "takeo
       const result = await response.json() as { order?: CreatedOrder; error?: string }; if (!response.ok || !result.order) throw new Error(result.error || "訂單送出失敗"); setCreated(result.order);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "訂單服務暫時無法使用"); } finally { setLoading(false); }
   };
+  if (!started) return <ScanStoreLanding store={store} mode={mode} tableNo={tableNo} onStart={() => setStarted(true)}/>;
   if (!identity) return <IdentityGate storeName={store.profile.name} onDone={(value) => { sessionStorage.setItem(`rootable-identity-${store.slug}`, JSON.stringify(value)); setIdentity(value); }}/>
   if (created) return <main className="tenant-mobile-shell"><section className="tenant-success"><div>✓</div><p className="tenant-kicker">訂單已送出</p><h1>{mode === "order" ? "餐點會送到桌邊" : "請依預約時間到店取餐"}</h1><dl><div><dt>訂單編號</dt><dd>{created.orderNo}</dd></div><div><dt>{mode === "order" ? "桌號" : "取餐時間"}</dt><dd>{mode === "order" ? tableNo : pickupTime}</dd></div><div><dt>付款</dt><dd>{payment === "cash" ? "店內付現" : `${payment === "line_pay" ? "LINE Pay" : "Apple Pay"} 模擬完成`}</dd></div><div><dt>金額</dt><dd>{money(created.subtotal)}</dd></div></dl><p>付款、通知與退款皆為試營運模擬，不會產生真實扣款。</p><a className="tenant-primary" href={`/s/${store.slug}`}>回店家首頁</a></section></main>;
   if (checkout) return <main className="tenant-mobile-shell"><section className="tenant-checkout"><header><button onClick={() => setCheckout(false)}>返回</button><div><b>確認訂單</b><span>{mode === "order" ? `內用・桌號 ${tableNo}` : `外帶・${pickupTime} 取餐`}</span></div></header><div className="tenant-checkout-body"><section><h1>您的餐點</h1>{cart.map((line) => <article className="tenant-cart-line" key={line.id}><img src={line.product.image} alt=""/><div><b>{line.product.name}</b><span>{line.optionLabel}</span><strong>{money(line.unitPrice)}</strong></div><div className="tenant-stepper"><button onClick={() => change(line.id, -1)}>−</button><span>{line.quantity}</span><button onClick={() => change(line.id, 1)}>＋</button></div></article>)}</section><section className="tenant-order-info"><h2>{mode === "order" ? "桌號" : "取餐時間"}</h2>{mode === "order" ? <input value={tableNo} onChange={(event) => setTableNo(event.target.value)} /> : <select value={pickupTime} onChange={(event) => setPickupTime(event.target.value)}>{["11:30", "12:00", "12:30", "17:30", "18:00", "18:30", "19:00"].map((time) => <option key={time}>{time}</option>)}</select>}<label>餐點備註<textarea maxLength={80} value={note} onChange={(event) => setNote(event.target.value)} placeholder="例如：不要香菜、餐具 2 份"/></label></section><fieldset className="tenant-payment"><legend>付款方式</legend>{[["cash", "現場付現", "店家自行收款，免平台手續費"], ["line_pay", "LINE Pay", "Rootable 代支付・模擬"], ["apple_pay", "Apple Pay", "Rootable 代支付・模擬"]].map(([id, label, help]) => <button type="button" className={payment === id ? "selected" : ""} onClick={() => setPayment(id as typeof payment)} key={id}><span/><div><b>{label}</b><small>{help}</small></div><strong>{id === "cash" ? "免費" : "立即付款"}</strong></button>)}</fieldset>{error && <p className="form-error">{error}</p>}</div><footer className="tenant-checkout-footer"><div><span>顧客服務費 NT$ 0</span><b>{money(subtotal)}</b></div><button className="tenant-primary" disabled={!cart.length || loading} onClick={submit}>{loading ? "正在送出…" : payment === "cash" ? "送出訂單" : `模擬支付 ${money(subtotal)}`}</button></footer></section></main>;

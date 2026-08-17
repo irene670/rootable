@@ -47,7 +47,7 @@ test("exposes the customer and merchant product routes", async () => {
   assert.doesNotMatch(merchant, /og\.png/);
 });
 
-test("renders the multi-merchant storefront, ordering gate, reservation, and onboarding routes", async () => {
+test("renders the multi-merchant storefront, scan introduction, reservation, and onboarding routes", async () => {
   const [storeResponse, orderResponse, reserveResponse, startResponse, workbenchResponse] = await Promise.all([
     render("/s/senri"), render("/s/senri/order?table=A03"), render("/s/senri/reserve"), render("/start"), render("/merchant/orders"),
   ]);
@@ -56,9 +56,9 @@ test("renders the multi-merchant storefront, ordering gate, reservation, and onb
   assert.match(store, /把日常好好煮成一頓飯/);
   assert.match(store, /內用掃碼點餐/);
   assert.match(store, /完成訂單的顧客怎麼說/);
-  assert.match(order, /先留下聯絡方式/);
-  assert.match(order, /使用 LINE 登入/);
-  assert.match(order, /輸入手機號碼/);
+  assert.match(order, /營業中・可接受點餐/);
+  assert.match(order, /桌號 A03/);
+  assert.match(order, /查看菜單並開始點餐/);
   assert.match(reserve, /一般訂位免訂金/);
   assert.match(reserve, /取消規則/);
   assert.match(start, /最快 10 分鐘上線/);
