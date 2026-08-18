@@ -101,12 +101,14 @@ test("merchant workbench includes a usable manual POS order flow", async () => {
   ]);
   assert.match(pos, /櫃台手動開單/);
   assert.match(pos, /orderSource: "merchant_pos"/);
+  assert.match(pos, /initialTable/);
   assert.match(pos, /收現並送單/);
   assert.match(pos, /LINE Pay/);
   assert.match(pos, /optionGroups/);
   assert.match(merchant, /<MerchantPos/);
   assert.match(merchant, /即時桌況/);
-  assert.match(merchant, /點空桌可直接開單/);
+  assert.match(merchant, /空桌點一下立即開單/);
+  assert.match(merchant, /setPosTable\(table\.tableNo\)/);
   assert.match(orderApi, /isMerchantPos/);
 });
 

@@ -1935,3 +1935,92 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible 
   .scan-order-steps { padding-right:14px; padding-left:14px; }
 }
 @media (prefers-reduced-motion:reduce) { .role-entry a { transition:none; } }
+
+/* Rootable tablet operations — optimized for restaurant iPad use. */
+.ops-overview-grid { margin-top:10px; display:grid; grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr); align-items:stretch; gap:10px; }
+.ops-overview-grid.single { grid-template-columns:1fr; }
+.ops-overview-grid .table-state-strip,.ops-overview-grid .cash-approval-panel { height:100%; margin:0; }
+.ops-overview-grid .table-state-strip>div { grid-template-columns:repeat(4,minmax(0,1fr)); overflow:visible; }
+.ops-overview-grid .cash-approval-panel { display:flex; flex-direction:column; }
+.ops-overview-grid .cash-approval-panel>div { grid-template-columns:1fr; }
+
+@media (min-width:821px) and (max-width:1180px) {
+  .merchant-page { grid-template-columns:104px minmax(0,1fr); }
+  .merchant-sidebar { padding:16px 10px 12px; }
+  .merchant-brand { justify-content:center; padding:0; }
+  .merchant-brand>span:last-child,.merchant-store>div,.merchant-sidebar-status { display:none; }
+  .merchant-store { justify-content:center; margin-top:14px; padding:12px 0; }
+  .merchant-nav { gap:8px; }
+  .merchant-nav button { min-height:72px; padding:8px 4px; grid-template-columns:1fr; justify-items:center; align-content:center; gap:3px; text-align:center; }
+  .merchant-nav button>span { align-self:center; padding:0; font-size:10px; }
+  .merchant-nav button>div { display:block; }
+  .merchant-nav button b { font-size:11px; line-height:1.25; }
+  .merchant-nav button small { display:none; }
+  .merchant-main { padding:0 14px 24px; }
+  .merchant-topbar { min-height:80px; margin:0 -14px; padding:12px 14px; }
+  .merchant-topbar h1 { font-size:25px; }
+  .merchant-page .metric-row { gap:8px; }
+  .merchant-page .metric-row article { min-height:88px; padding:13px; }
+  .merchant-page .metric-row span { color:#465a51; font-size:12px; font-weight:800; }
+  .merchant-page .metric-row small { font-size:10px; }
+  .merchant-page .metric-row b { font-size:32px; }
+  .table-state-strip { padding:14px; }
+  .table-state-strip>header p { font-size:10px; }
+  .table-state-strip>header h2 { font-size:18px; }
+  .table-state-strip>header>span { font-size:10px; }
+  .table-state { min-height:76px; padding:10px 11px; transition:border-color 160ms ease,background 160ms ease; }
+  .table-state:active { background:#e6ece8; }
+  .table-state strong { font-size:16px; }.table-state b { font-size:12px; }.table-state small { font-size:10px; }
+  .cash-approval-panel>header span { font-size:16px; }
+  .cash-approval-panel>header small { font-size:10px; }
+  .cash-approval-panel article { min-height:82px; padding:10px; }
+  .cash-approval-panel article strong { font-size:20px; }
+  .cash-approval-panel article span,.cash-approval-panel article p { font-size:11px; }
+  .cash-approval-panel article button { min-width:122px; min-height:52px; font-size:12px; }
+  .production-strip { padding:14px; }
+  .production-strip>header span { font-size:16px; }
+  .production-grid article span { font-size:14px; }
+  .production-grid article b,.production-grid article button { font-size:12px; }
+  .order-board { gap:8px; }
+  .queue-column { padding:8px; }
+  .queue-column>header { min-height:58px; }
+  .queue-column>header h2 { font-size:16px; }
+  .queue-column>header p { font-size:10px; }
+  .queue-column>header>b { width:34px; height:34px; font-size:15px; }
+  .ticket-table span,.ticket-time span { font-size:9px; }
+  .ticket-table strong { font-size:19px; }
+  .ticket-identity b { font-size:13px; }.ticket-identity span { font-size:10px; }
+  .ticket-time strong { font-size:24px; }
+  .ticket-flags .status-badge,.ticket-flags .payment-badge,.ticket-flags .source-badge { font-size:10px; }
+  .ticket-items>div span { font-size:15px; }
+  .ticket-items>div span small,.kds-ticket .order-note { font-size:11px; }
+  .ticket-total span { font-size:10px; }.ticket-total b { font-size:14px; }
+  .ticket-actions button,.secondary-ticket-action,.item-serve-actions button { min-height:52px; font-size:12px; }
+  .pos-workspace { grid-template-columns:160px minmax(350px,1fr) 290px; }
+  .pos-product-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .pos-product-card { min-height:104px; grid-template-columns:64px minmax(0,1fr); }
+  .pos-product-card>img,.pos-image-placeholder { width:64px; height:76px; }
+  .pos-product-copy b { font-size:13px; }.pos-product-copy small { font-size:10px; }.pos-product-copy strong { font-size:13px; }
+  .pos-cart-lines article b,.pos-payment b { font-size:12px; }
+  .pos-cart-lines article small,.pos-payment small { font-size:9px; }
+}
+
+@media (max-width:820px) {
+  .merchant-sidebar { padding-right:7px; padding-left:7px; }
+  .merchant-nav button { min-height:68px; padding:7px 2px; gap:2px; }
+  .merchant-nav button>div { display:block; text-align:center; }
+  .merchant-nav button b { font-size:10px; line-height:1.2; }
+  .merchant-nav button small { display:none; }
+  .ops-overview-grid { grid-template-columns:1fr; }
+  .ops-overview-grid .table-state-strip>div { grid-template-columns:repeat(4,minmax(0,1fr)); overflow:visible; }
+  .table-state { min-height:72px; }
+  .table-state strong { font-size:15px; }.table-state b { font-size:11px; }.table-state small { font-size:9px; }
+  .order-board { grid-template-columns:1fr; }
+  .queue-column { padding:10px; }
+  .queue-column>header h2 { font-size:17px; }
+  .queue-column>header p { font-size:11px; }
+  .kds-ticket { max-width:none; }
+  .ticket-identity b { font-size:14px; }.ticket-identity span { font-size:11px; }
+  .ticket-items>div span { font-size:16px; }
+  .ticket-items>div span small { font-size:11px; }
+}

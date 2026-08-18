@@ -56,6 +56,7 @@ export default function MerchantClient() {
   const [lastSynced, setLastSynced] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const [notice, setNotice] = useState("");
+  const [posTable, setPosTable] = useState("A01");
 
   const loadOrders = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -259,7 +260,7 @@ export default function MerchantClient() {
         {error && <p className="form-error dashboard-error" role="alert">{error}</p>}
         {notice && <p className="dashboard-notice" role="status"><span>{notice}</span><button onClick={() => setNotice("")} aria-label="關閉通知">關閉</button></p>}
 
-        {view === "pos" && <MerchantPos storeId={storeId} products={products} onError={setError} onCreated={(orderNo, destination) => { setNotice(`${destination} ${orderNo} 已由櫃台建立並送入待接單`); void loadOrders(true); setView("live"); }} />}
+        {view === "pos" && <MerchantPos storeId={storeId} products={products} initialTable={posTable} onError={setError} onCreated={(orderNo, destination) => { setNotice(`${destination} ${orderNo} 已由櫃台建立並送入待接單`); void loadOrders(true); setView("live"); }} />}
 
         {view === "live" && (
           <div className="live-workspace">
@@ -270,17 +271,19 @@ export default function MerchantClient() {
               <article className="metric-ready"><span>已全數出餐</span><b>{counts.ready}</b><small>等待結單</small></article>
             </section>
 
-            <section className="table-state-strip" aria-label="即時桌況">
-              <header><div><p>即時桌況</p><h2>一眼找到需要處理的桌</h2></div><span>點空桌可直接開單</span></header>
-              <div>{tableStates.map((table) => <button className={`table-state ${table.tone}`} key={table.tableNo} onClick={() => { if (table.tone === "empty") setView("pos"); }}><strong>{table.tableNo}</strong><b>{table.label}</b><small>{table.detail}</small></button>)}</div>
-            </section>
-
-            {cashPendingOrders.length > 0 && (
-              <section className="cash-approval-panel" aria-label="待收現金訂單">
-                <header><div><span>櫃台待收現</span><small>確認桌號與金額，收款完成才會送入廚房</small></div><b>{cashPendingOrders.length} 張</b></header>
-                <div>{cashPendingOrders.map((order) => <article key={order.id}><div><strong>{order.tableNo}</strong><span>{order.orderNo}・{elapsedMinutes(order.createdAt)} 分鐘</span></div><p>{order.items.reduce((sum, item) => sum + item.quantity, 0)} 份餐點</p><button onClick={() => updateOrder(order, { paymentStatus: "paid" })} disabled={updating === order.id}>{updating === order.id ? "確認中…" : `已收 ${money(order.subtotal)}`}</button></article>)}</div>
+            <div className={`ops-overview-grid ${cashPendingOrders.length ? "has-cash" : "single"}`}>
+              <section className="table-state-strip" aria-label="即時桌況">
+                <header><div><p>即時桌況</p><h2>一眼找到需要處理的桌</h2></div><span>空桌點一下立即開單</span></header>
+                <div>{tableStates.map((table) => <button className={`table-state ${table.tone}`} key={table.tableNo} onClick={() => { if (table.tone === "empty") { setPosTable(table.tableNo); setView("pos"); } }} aria-label={`${table.tableNo} ${table.label} ${table.detail}${table.tone === "empty" ? "，點擊開單" : ""}`}><strong>{table.tableNo}</strong><b>{table.label}</b><small>{table.detail}</small></button>)}</div>
               </section>
-            )}
+
+              {cashPendingOrders.length > 0 && (
+                <section className="cash-approval-panel" aria-label="待收現金訂單">
+                  <header><div><span>櫃台待收現</span><small>收款完成，訂單才送入廚房</small></div><b>{cashPendingOrders.length} 張</b></header>
+                  <div>{cashPendingOrders.map((order) => <article key={order.id}><div><strong>{order.tableNo}</strong><span>{order.orderNo}・等待 {elapsedMinutes(order.createdAt)} 分</span></div><p>{order.items.reduce((sum, item) => sum + item.quantity, 0)} 份餐點</p><button onClick={() => updateOrder(order, { paymentStatus: "paid" })} disabled={updating === order.id}>{updating === order.id ? "確認中…" : `收現 ${money(order.subtotal)}`}</button></article>)}</div>
+                </section>
+              )}
+            </div>
 
             {productionCounts.length > 0 && (
               <section className="production-strip" aria-label="目前待製作餐點總數">

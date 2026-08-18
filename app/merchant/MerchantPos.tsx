@@ -20,6 +20,7 @@ type PosCartLine = {
 type MerchantPosProps = {
   storeId: string;
   products: MenuProduct[];
+  initialTable?: string;
   onCreated: (orderNo: string, destination: string) => void;
   onError: (message: string) => void;
 };
@@ -43,12 +44,12 @@ const optionAmount = (product: MenuProduct, selections: Selection) => product.op
   .filter((option) => Object.values(selections).flat().includes(option.id))
   .reduce((sum, option) => sum + option.price, 0);
 
-export default function MerchantPos({ storeId, products, onCreated, onError }: MerchantPosProps) {
+export default function MerchantPos({ storeId, products, initialTable = "A01", onCreated, onError }: MerchantPosProps) {
   const categories = useMemo(() => ["全部", ...Array.from(new Set(products.map((product) => product.category)))], [products]);
   const [category, setCategory] = useState("全部");
   const [search, setSearch] = useState("");
   const [mode, setMode] = useState<PosOrderMode>("dine_in");
-  const [tableNo, setTableNo] = useState("A01");
+  const [tableNo, setTableNo] = useState(initialTable);
   const [takeoutName, setTakeoutName] = useState("");
   const [partySize, setPartySize] = useState(2);
   const [note, setNote] = useState("");

@@ -8,6 +8,11 @@
 
 ## Overrides
 
+- Treat 1024×768 landscape as the primary merchant workstation, not as a shrunken desktop. Use a 104px compact rail, four readable metrics, a two-column operations overview, and three ticket columns.
+- At 768px portrait, retain labeled navigation and switch the ticket board to one full-width column so item names and modifiers never become miniature text.
+- Table-state buttons use a 4×2 grid on tablets. Empty tables must open the POS with that exact table already selected.
+- Operational body text stays at 11px or larger and primary ticket content at 14–16px; 8–10px text is reserved for tertiary metadata only.
+
 - Add a dedicated manual POS view beside the live-order board. Follow the iCHEF pattern of order context, menu, and current bill as three persistent zones; follow dudoo's clear dine-in/takeout and table-state controls.
 - Manual POS orders support table or takeout identity, party size, menu search, category filters, product modifiers, quantity changes, notes, and cash or simulated Rootable Pay checkout without sending staff into the customer-facing site.
 - Cash POS checkout means the staff member has already received cash, so the demo creates the order and immediately confirms payment before it enters the kitchen queue. Label this action explicitly as `收現並送單`.
