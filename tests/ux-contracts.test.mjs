@@ -13,12 +13,11 @@ test("customer ordering keeps real-data loading, menu fallback, and cart safegua
   assert.match(source, /餐前付款/);
   assert.match(source, /window\.scrollTo\(\{ top: 0/);
   assert.match(source, /setStore\(createSeedStore\(\)\)/);
-  assert.match(source, /本次桌號/);
-  assert.match(source, /一般點餐/);
-  assert.match(source, /個別手機選餐・由一人統一結帳/);
-  assert.match(source, /語言選擇/);
-  assert.match(source, /免登入點餐/);
-  assert.match(source, /結帳完成後仍可選擇綁定 LINE/);
+  assert.match(source, /uber-menu-page/);
+  assert.match(source, /團體點餐/);
+  assert.match(source, /登入 LINE 並加入熟客/);
+  assert.doesNotMatch(source, /function ScanStoreLanding/);
+  assert.doesNotMatch(source, /function IdentityGate/);
   assert.match(source, /登入 LINE 並加入熟客/);
   assert.doesNotMatch(source, /href="\/s\/senri"/);
   assert.doesNotMatch(source, /<b>⌑<\/b>|<b>▣<\/b>|<b>▤<\/b>/);
@@ -126,7 +125,9 @@ test("group ordering uses durable shared sessions and a host-controlled combined
     readFile(new URL("../netlify.toml", import.meta.url), "utf8"),
   ]);
   assert.match(storefront, /團體點餐/);
-  assert.match(storefront, /個別手機選餐・由一人統一結帳/);
+  assert.match(storefront, /建立團體 QR Code/);
+  assert.match(storefront, /api\.qrserver\.com/);
+  assert.match(storefront, /掃描加入桌號/);
   assert.match(storefront, /group-orders/);
   assert.match(storefront, /begin_checkout/);
   assert.match(storefront, /mark_submitted/);

@@ -9,9 +9,9 @@
 ## Overrides
 
 - Keep the Rootable forest palette from `MASTER.md`; do not adopt generic restaurant red.
-- Start with a focused scanned-table confirmation screen before revealing the menu. The first screen shows the store, confirmed table number, language selector, and exactly two ordering choices: regular ordering or group ordering.
-- Regular ordering uses progressive identity: LINE login is the recommended member-benefit path, while guest ordering remains a complete non-blocking path without phone-number collection.
-- Group ordering means separate-phone selection with one host-controlled checkout. Joining or starting a group must not force LINE login.
+- A scanned table QR Code opens the menu immediately. Show the store and table number in the compact menu header; do not introduce a second general-versus-group decision screen.
+- Keep a single, prominent `團體點餐` action at the top of the menu. The first guest creates the shared order, then sees a QR Code that encodes the same table and group-order URL.
+- Group ordering means separate-phone selection with one host-controlled checkout. Other guests join by scanning the host's QR Code, enter only a display name, and never need LINE login or a manually entered code. A shareable link and six-character code remain fallback paths.
 - Open products in a bottom sheet with required customization groups, quantity, price, and one clear add-to-cart action.
 - Use a compact store header with table number, a sticky horizontal category rail, dense image-led menu rows, and a fixed cart CTA.
 - Keep every touch target at least 44px. Quantity controls must remain visible after an item is added.
@@ -26,5 +26,6 @@
 - Fixed cart and checkout bars respect bottom safe areas and never cover the last content row.
 - Cash, LINE Pay simulation, and Apple Pay simulation are distinguishable without relying on color alone.
 - Query strings such as `?table=B12` hydrate without console errors and prefill the scanned table number.
-- Switching between Traditional Chinese and English changes the QR entry and identity-choice labels without reloading the page.
-- A guest can complete: QR entry → regular ordering → guest → menu → checkout → success → optional LINE conversion.
+- Query strings such as `?table=B12` open the menu directly without a login gate.
+- A host can create a group from the menu, display a readable QR Code, and a second phone opened with its QR URL joins the same table/order session.
+- A guest can complete: QR scan → menu → checkout → success → optional LINE conversion.

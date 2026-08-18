@@ -8,7 +8,6 @@ import type { MenuProduct, ProductOption, Review, StoreRecord } from "../../plat
 
 type RouteMode = "website" | "order" | "takeout" | "reserve";
 type Identity = { method: "line" | "guest"; label: string };
-type OrderLanguage = "zh-TW" | "en";
 type Selection = Record<string, string[]>;
 type CartLine = { id: string; product: MenuProduct; quantity: number; selections: Selection; unitPrice: number; optionLabel: string };
 type CreatedOrder = { orderNo: string; subtotal: number; paymentStatus: string };
@@ -19,11 +18,8 @@ const formatOptions = (product: MenuProduct, selections: Selection) => product.o
 const optionPrice = (product: MenuProduct, selections: Selection) => product.optionGroups.flatMap((group) => group.options).filter((option) => Object.values(selections).flat().includes(option.id)).reduce((sum, option) => sum + option.price, 0);
 const CloseIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6l12 12M18 6 6 18"/></svg>;
 const SearchIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>;
-const DineInIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 3v7a3 3 0 0 0 3 3h1V3M7 3v6M9 3v6M8 13v8M16 3v18M16 3c3 1 4 4 4 7h-4"/></svg>;
 const TrashIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14"/></svg>;
 const UsersIcon = ({ size = 22 }: { size?: number }) => <svg aria-hidden="true" viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
-const ArrowIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>;
-const GlobeIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>;
 const SparkIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="m12 3 1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4L12 3Z"/><path d="m18.5 14 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z"/></svg>;
 const ShareIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>;
 const CopyIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;
@@ -35,36 +31,6 @@ const recommendedProducts = (products: MenuProduct[]) => {
 
 function StoreLoading({ failed = false }: { failed?: boolean }) {
   return <main className="tenant-mobile-shell storefront-loading" aria-live="polite"><section>{failed ? <><b>目前無法載入店家資料</b><p>請確認網路後重新整理頁面。</p><button className="tenant-primary" onClick={() => window.location.reload()}>重新載入</button></> : <><span className="loading-logo"/><span className="loading-line wide"/><span className="loading-line"/><div className="loading-grid"><i/><i/><i/><i/></div><p>正在準備店家菜單…</p></>}</section></main>;
-}
-
-function ScanStoreLanding({ store, mode, tableNo, language, onLanguageChange, onStart, onGroupStart }: { store: StoreRecord; mode: "order" | "takeout"; tableNo: string; language: OrderLanguage; onLanguageChange: (language: OrderLanguage) => void; onStart: () => void; onGroupStart: () => void }) {
-  const isEnglish = language === "en";
-  return <main className="qr-entry-shell" lang={language} style={{ "--tenant-primary": store.profile.theme.primary, "--tenant-accent": store.profile.theme.accent } as React.CSSProperties}>
-    <section className="qr-entry-page">
-      <header className="qr-entry-top"><a href={`/s/${store.slug}`} aria-label={isEnglish ? "Back to store" : "返回店家首頁"}><CloseIcon/></a><label><GlobeIcon/><span className="sr-only">{isEnglish ? "Language" : "語言選擇"}</span><select value={language} onChange={(event) => onLanguageChange(event.target.value as OrderLanguage)} aria-label={isEnglish ? "Language" : "語言選擇"}><option value="zh-TW">繁體中文</option><option value="en">English</option></select></label></header>
-      <div className="qr-entry-hero"><img src={store.profile.coverImage} alt={`${store.profile.name}${isEnglish ? " signature dishes" : "招牌餐點"}`}/><div/><span className="qr-entry-logo" aria-hidden="true">{store.profile.logoText}</span><p>{isEnglish ? "Welcome to" : "歡迎來到"}</p><h1>{store.profile.name}</h1><small>{isEnglish ? "Dine-in mobile ordering" : "桌邊手機點餐"}</small></div>
-      <section className="qr-table-confirm" aria-labelledby="qr-table-title"><span><DineInIcon/></span><div><p id="qr-table-title">{isEnglish ? "Your table" : "本次桌號"}</p><strong>{mode === "order" ? tableNo : isEnglish ? "Takeout" : "外帶"}</strong></div><em>{isEnglish ? "Confirmed" : "已確認"}</em></section>
-      <section className="qr-order-choice" aria-labelledby="qr-choice-title"><header><p>{isEnglish ? "How would you like to order?" : "請選擇點餐方式"}</p><h2 id="qr-choice-title">{isEnglish ? "Start your order" : "今天怎麼點？"}</h2></header>
-        <button className="qr-choice-card primary" onClick={onStart}><span><DineInIcon/></span><div><b>{isEnglish ? "Regular ordering" : "一般點餐"}</b><small>{isEnglish ? "Order and checkout on this phone" : "在這支手機選餐並完成結帳"}</small></div><ArrowIcon/></button>
-        {mode === "order" && <button className="qr-choice-card" onClick={onGroupStart}><span><UsersIcon size={24}/></span><div><b>{isEnglish ? "Group ordering" : "團體點餐"}</b><small>{isEnglish ? "Choose on separate phones, one person pays" : "個別手機選餐・由一人統一結帳"}</small></div><ArrowIcon/></button>}
-      </section>
-      <div className="qr-entry-trust"><span><SparkIcon/></span><p><b>{isEnglish ? "No customer service fee" : "顧客免平台服務費"}</b><small>{isEnglish ? "Cash or Rootable Pay available at checkout" : "結帳可選現金或 Rootable Pay"}</small></p></div>
-      <footer className="qr-entry-footer"><span>Powered by Rootable 森根</span><a href={`/s/${store.slug}`}>{isEnglish ? "Store information" : "查看店家資訊"}</a></footer>
-    </section>
-  </main>;
-}
-
-function IdentityGate({ onDone, onBack, storeName, language }: { onDone: (identity: Identity) => void; onBack: () => void; storeName: string; language: OrderLanguage }) {
-  const isEnglish = language === "en";
-  return <main className="tenant-mobile-shell identity-shell" lang={language}><section className="identity-card order-access-card">
-    <button className="identity-back-button" onClick={onBack}>{isEnglish ? "Back" : "返回點餐方式"}</button>
-    <div className="tenant-logo">森</div><p className="tenant-kicker">{storeName}・{isEnglish ? "Regular ordering" : "一般點餐"}</p><h1>{isEnglish ? "Choose how to continue" : "選擇進入方式"}</h1><p>{isEnglish ? "LINE login unlocks member rewards. Guest ordering stays fast and does not require an account." : "LINE 登入可以累積熟客優惠；也可以免登入直接點餐，不影響送單。"}</p>
-    <button className="line-login-button" onClick={() => onDone({ method: "line", label: "LINE 顧客（模擬）" })}><span>LINE</span>{isEnglish ? "Continue with LINE" : "使用 LINE 登入點餐"}<small>{isEnglish ? "Member rewards and easier order lookup" : "優惠入口・累積消費與查詢訂單"}</small></button>
-    <div className="line-benefits"><span><SparkIcon/></span><p><b>{isEnglish ? "New member reward" : "登入即享熟客優惠"}</b><small>{isEnglish ? "Demo reward: NT$30 off your next visit" : "示範優惠：下次消費可領 NT$30"}</small></p></div>
-    <div className="identity-divider"><span>{isEnglish ? "or" : "或"}</span></div>
-    <button className="guest-order-button" onClick={() => onDone({ method: "guest", label: "免登入顧客" })}><b>{isEnglish ? "Order as guest" : "免登入點餐"}</b><small>{isEnglish ? "No LINE account or phone number required" : "不需 LINE，也不用填手機號碼"}</small></button>
-    <p className="identity-note">{isEnglish ? "You can still connect LINE after checkout. This demo does not access a real LINE account." : "結帳完成後仍可選擇綁定 LINE。本 Demo 不會存取真實 LINE 帳號。"}</p>
-  </section></main>;
 }
 
 function ProductSheet({ product, onClose, onAdd }: { product: MenuProduct; onClose: () => void; onAdd: (quantity: number, selections: Selection) => void }) {
@@ -126,11 +92,12 @@ function StoreWebsite({ store, reviews }: { store: StoreRecord; reviews: Review[
   </main>;
 }
 
-function GroupOrderDialog({ open, group, defaultName, joinCode, loading, error, onClose, onCreate, onJoin, onShare }: {
+function GroupOrderDialog({ open, group, defaultName, joinCode, groupUrl, loading, error, onClose, onCreate, onJoin, onShare }: {
   open: boolean;
   group: PublicGroupOrderSession | null;
   defaultName: string;
   joinCode: string;
+  groupUrl: string;
   loading: boolean;
   error: string;
   onClose: () => void;
@@ -138,22 +105,22 @@ function GroupOrderDialog({ open, group, defaultName, joinCode, loading, error, 
   onJoin: (code: string, name: string) => void;
   onShare: () => void;
 }) {
-  const [mode, setMode] = useState<"create" | "join">(joinCode ? "join" : "create");
   const [name, setName] = useState(defaultName);
-  const [code, setCode] = useState(joinCode);
+  const isJoining = Boolean(joinCode);
+  const qrImageUrl = groupUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=0&data=${encodeURIComponent(groupUrl)}` : "";
   if (!open) return null;
   return <div className="group-dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="group-dialog" role="dialog" aria-modal="true" aria-labelledby="group-dialog-title">
-      <header><div className="group-dialog-heading"><span><UsersIcon/></span><div><p>同桌同步點餐</p><h2 id="group-dialog-title">{group ? `團體代碼 ${group.code}` : "一起點，各自選"}</h2></div></div><button onClick={onClose} aria-label="關閉團體點餐視窗"><CloseIcon/></button></header>
+      <header><div className="group-dialog-heading"><span><UsersIcon/></span><div><p>同桌同步點餐</p><h2 id="group-dialog-title">{group ? "請朋友掃描加入" : isJoining ? "加入這張團體訂單" : "建立團體 QR Code"}</h2></div></div><button onClick={onClose} aria-label="關閉團體點餐視窗"><CloseIcon/></button></header>
       {group ? <>
         <div className="group-live-summary"><div className="group-avatar-stack">{group.members.slice(0, 5).map((member) => <span className={`tone-${member.color}`} title={member.name} key={member.id}>{member.name.slice(0, 1)}</span>)}</div><div><b>{group.members.length} 人已加入</b><span>{groupItemCount(group)} 份餐點・{money(groupSubtotal(group))}</span></div><em>同步中</em></div>
-        <div className="group-code-card"><div><span>分享團體代碼</span><strong>{group.code}</strong></div><button onClick={onShare}><ShareIcon/>邀請朋友</button></div>
+        <section className="group-qr-card" aria-label="團體點餐 QR Code"><div className="group-qr-card-head"><span><UsersIcon size={18}/></span><div><b>桌號 {group.tableNo}・統一結帳</b><small>朋友掃描後，即可各自在同一張訂單選餐</small></div></div>{qrImageUrl && <img src={qrImageUrl} alt={`掃描加入桌號 ${group.tableNo} 的團體點餐`} width="220" height="220"/>}<p>請讓每位朋友掃描這張 QR Code</p><div className="group-code-card"><div><span>備用團體代碼</span><strong>{group.code}</strong></div><button onClick={onShare}><ShareIcon/>分享連結</button></div></section>
         <div className="group-how"><b>朋友加入後會怎麼進行？</b><ol><li><span>1</span>每個人用自己的手機選餐</li><li><span>2</span>大家即時看見整桌內容</li><li><span>3</span>發起人確認後統一送單</li></ol></div>
       </> : <>
-        <div className="group-mode-tabs" role="tablist" aria-label="團體點餐方式"><button className={mode === "create" ? "active" : ""} onClick={() => setMode("create")} role="tab" aria-selected={mode === "create"}>發起新團體</button><button className={mode === "join" ? "active" : ""} onClick={() => setMode("join")} role="tab" aria-selected={mode === "join"}>輸入代碼加入</button></div>
-        <div className="group-form"><label htmlFor="group-member-name">大家怎麼稱呼你？</label><input id="group-member-name" maxLength={12} value={name} onChange={(event) => setName(event.target.value)} placeholder="例如：小森" autoComplete="nickname"/>{mode === "join" && <><label htmlFor="group-code">六碼團體代碼</label><input id="group-code" className="group-code-input" inputMode="text" maxLength={6} value={code} onChange={(event) => setCode(cleanGroupCode(event.target.value))} placeholder="例如：ABC234" autoCapitalize="characters"/></>}</div>
+        <p className="group-dialog-intro">{isJoining ? "掃描成功。填寫稱呼後就能加入，並各自選擇自己的餐點。" : "先建立一張同桌訂單，再把畫面上的 QR Code 給朋友掃描；最後由你統一確認付款。"}</p>
+        <div className="group-form"><label htmlFor="group-member-name">大家怎麼稱呼你？</label><input id="group-member-name" maxLength={12} value={name} onChange={(event) => setName(event.target.value)} placeholder="例如：小森" autoComplete="nickname"/></div>
         <div className="group-dialog-benefits"><div><UsersIcon size={20}/><span><b>不用傳手機</b><small>每個人都能自己加口味備註</small></span></div><div><CopyIcon/><span><b>整桌不漏點</b><small>送出前依成員逐一確認</small></span></div></div>
-        <button className="group-primary" disabled={loading || !name.trim() || (mode === "join" && code.length !== 6)} onClick={() => mode === "create" ? onCreate(name) : onJoin(code, name)}>{loading ? "正在連接同桌…" : mode === "create" ? "建立團體並取得邀請代碼" : "加入這桌一起點"}</button>
+        <button className="group-primary" disabled={loading || !name.trim() || (isJoining && joinCode.length !== 6)} onClick={() => isJoining ? onJoin(joinCode, name) : onCreate(name)}>{loading ? "正在連接同桌…" : isJoining ? "加入這張訂單" : "建立團體 QR Code"}</button>
       </>}
       {error && <p className="group-dialog-error" role="alert">{error}</p>}
       <p className="group-dialog-note">團體點餐只合併本次桌號的餐點，付款仍由發起人最後確認。</p>
@@ -162,10 +129,7 @@ function GroupOrderDialog({ open, group, defaultName, joinCode, loading, error, 
 }
 
 function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecord; mode: "order" | "takeout"; previewOrdering?: boolean }) {
-  const [started, setStarted] = useState(previewOrdering);
-  const [flowMode, setFlowMode] = useState<"general" | "group" | null>(previewOrdering ? "general" : null);
-  const [language, setLanguage] = useState<OrderLanguage>("zh-TW");
-  const [identity, setIdentity] = useState<Identity | null>(previewOrdering ? { method: "guest", label: "店家預覽" } : null);
+  const [identity, setIdentity] = useState<Identity>(previewOrdering ? { method: "guest", label: "店家預覽" } : { method: "guest", label: "免登入顧客" });
   const [postOrderLineLinked, setPostOrderLineLinked] = useState(false);
   const [category, setCategory] = useState("熱門推薦");
   const [query, setQuery] = useState("");
@@ -206,7 +170,7 @@ function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecor
       if (params.get("source") === "marketplace") setOrderSource("rootable_marketplace");
       const invite = cleanGroupCode(params.get("group") || "");
       if (mode === "order" && invite.length === 6) {
-        setStarted(true); setFlowMode("group"); setIdentity({ method: "guest", label: "團體點餐顧客" }); setGroupInviteCode(invite); setGroupDialog(true);
+        setIdentity({ method: "guest", label: "團體點餐顧客" }); setGroupInviteCode(invite); setGroupDialog(true);
         const membership = sessionStorage.getItem(`rootable-group-${store.slug}-${invite}`);
         if (membership) {
           try {
@@ -266,6 +230,15 @@ function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecor
   const subtotal = groupForDisplay ? groupSubtotal(groupForDisplay) : ownSubtotal;
   const isGroupHost = Boolean(groupForDisplay?.members.find((member) => member.id === groupMemberId)?.isHost);
   const defaultGroupName = identity?.method === "line" ? "LINE 顧客" : "";
+  const groupCode = groupForDisplay?.code;
+  const groupTableNo = groupForDisplay?.tableNo;
+  const groupUrl = useMemo(() => {
+    if (!groupCode || !groupTableNo || typeof window === "undefined") return "";
+    const url = new URL(window.location.href);
+    url.searchParams.set("table", groupTableNo);
+    url.searchParams.set("group", groupCode);
+    return url.toString();
+  }, [groupCode, groupTableNo]);
 
   const rememberGroup = (nextGroup: PublicGroupOrderSession, memberId: string, token: string) => {
     setGroup(nextGroup); setGroupMemberId(memberId); setGroupToken(token); setGroupInviteCode(nextGroup.code); setGroupError("");
@@ -296,11 +269,10 @@ function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecor
   };
   const shareGroup = async () => {
     if (!groupForDisplay) return;
-    const url = new URL(window.location.href); url.searchParams.set("table", groupForDisplay.tableNo); url.searchParams.set("group", groupForDisplay.code);
     try {
-      if (navigator.share) await navigator.share({ title: `${store.profile.name}・${groupForDisplay.tableNo} 團體點餐`, text: `輸入代碼 ${groupForDisplay.code}，一起選餐`, url: url.toString() });
-      else { await navigator.clipboard.writeText(url.toString()); setGroupNotice("邀請連結已複製"); }
-    } catch (cause) { if (!(cause instanceof DOMException && cause.name === "AbortError")) setGroupNotice("可直接分享畫面上的六碼代碼"); }
+      if (navigator.share) await navigator.share({ title: `${store.profile.name}・${groupForDisplay.tableNo} 團體點餐`, text: "掃描 QR Code 或開啟連結，一起選餐", url: groupUrl });
+      else { await navigator.clipboard.writeText(groupUrl); setGroupNotice("團體邀請連結已複製"); }
+    } catch (cause) { if (!(cause instanceof DOMException && cause.name === "AbortError")) setGroupNotice("請直接讓朋友掃描畫面上的 QR Code"); }
   };
 
   const add = (product: MenuProduct, quantity: number, selections: Selection) => {
@@ -345,9 +317,6 @@ function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecor
     } finally { setLoading(false); }
   };
 
-  if (!started) return <ScanStoreLanding store={store} mode={mode} tableNo={tableNo} language={language} onLanguageChange={setLanguage} onStart={() => { setFlowMode("general"); setStarted(true); }} onGroupStart={() => { setFlowMode("group"); setIdentity({ method: "guest", label: "團體點餐顧客" }); setStarted(true); setGroupDialog(true); }}/>;
-  if (flowMode !== "group" && !identity) return <IdentityGate storeName={store.profile.name} language={language} onBack={() => { setStarted(false); setFlowMode(null); }} onDone={(value) => { if (value.method === "line") sessionStorage.setItem(`rootable-identity-${store.slug}`, JSON.stringify(value)); setIdentity(value); }}/>;
-
   const submittedGroup = groupForDisplay?.status === "submitted" ? groupForDisplay : null;
   if (created || submittedGroup) {
     const finalOrder = created || { orderNo: submittedGroup!.orderNo, subtotal: groupSubtotal(submittedGroup!), paymentStatus: "paid" };
@@ -362,19 +331,19 @@ function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecor
     {(!groupForDisplay || isGroupHost) && <><section className="tenant-order-info"><h2>{mode === "order" ? "桌號" : "取餐時間"}</h2>{mode === "order" ? <input value={tableNo} readOnly={Boolean(groupForDisplay)} onChange={(event) => setTableNo(event.target.value)} aria-label="桌號"/> : <select value={pickupTime} onChange={(event) => setPickupTime(event.target.value)}>{["11:30", "12:00", "12:30", "17:30", "18:00", "18:30", "19:00"].map((time) => <option key={time}>{time}</option>)}</select>}<label>整桌備註<textarea maxLength={80} value={note} onChange={(event) => setNote(event.target.value)} placeholder="例如：餐具 4 份、一起上菜"/></label></section><fieldset className="tenant-payment"><legend>統一付款方式</legend>{[["cash", "櫃台付現", "送出後請先付款；店員確認後才開始製作"], ["line_pay", "LINE Pay", "Rootable 代支付・模擬"], ["apple_pay", "Apple Pay", "Rootable 代支付・模擬"]].map(([id, label, help]) => <button type="button" className={payment === id ? "selected" : ""} onClick={() => setPayment(id as typeof payment)} key={id}><span/><div><b>{label}</b><small>{help}</small></div><strong>{id === "cash" ? "餐前付款" : "立即付款"}</strong></button>)}</fieldset></>}
     {groupForDisplay && !isGroupHost && <section className="group-waiting-card"><UsersIcon size={24}/><div><h2>餐點會由發起人統一送出</h2><p>你仍可返回菜單調整自己的內容；同桌更新會自動同步。</p></div></section>}{error && <p className="form-error" role="alert">{error}</p>}
   </div><footer className="tenant-checkout-footer"><div><span>{groupForDisplay ? `${groupForDisplay.members.length} 人・${count} 份` : "顧客服務費 NT$ 0"}</span><b>{money(subtotal)}</b></div>{groupForDisplay && !isGroupHost ? <button className="tenant-secondary group-back-menu" onClick={() => setCheckout(false)}>返回調整我的餐點</button> : <button className="tenant-primary" disabled={!count || loading || groupForDisplay?.status === "submitting"} onClick={submit}>{loading ? "正在送出整桌訂單…" : payment === "cash" ? "確認整桌並前往櫃台付款" : `模擬支付 ${money(subtotal)}`}</button>}</footer></section>
-    <GroupOrderDialog key={`${groupForDisplay?.code || groupInviteCode || "new"}-${defaultGroupName}`} open={groupDialog} group={groupForDisplay} defaultName={defaultGroupName} joinCode={groupInviteCode} loading={groupLoading} error={groupError} onClose={() => setGroupDialog(false)} onCreate={createGroup} onJoin={joinGroup} onShare={shareGroup}/>
+    <GroupOrderDialog key={`${groupForDisplay?.code || groupInviteCode || "new"}-${defaultGroupName}`} open={groupDialog} group={groupForDisplay} defaultName={defaultGroupName} joinCode={groupInviteCode} groupUrl={groupUrl} loading={groupLoading} error={groupError} onClose={() => setGroupDialog(false)} onCreate={createGroup} onJoin={joinGroup} onShare={shareGroup}/>
   </main>;
 
   return <main className="tenant-mobile-shell"><section className="uber-menu-page" style={{ "--tenant-primary": store.profile.theme.primary, "--tenant-accent": store.profile.theme.accent } as React.CSSProperties}>
     <header className="uber-menu-top"><a href={`/s/${store.slug}`} aria-label="返回店家首頁"><CloseIcon/></a><div><b>{store.profile.name}</b><span>{mode === "order" ? `內用・桌號 ${tableNo}` : "預約外帶"}</span></div><button aria-label="搜尋" onClick={() => document.getElementById("tenant-menu-search")?.focus()}><SearchIcon/></button></header>
-    {mode === "order" && <section className={groupForDisplay ? "group-live-bar active" : "group-live-bar"}><div className="group-live-bar-main"><span><UsersIcon size={20}/></span><div><b>{groupForDisplay ? `${groupForDisplay.members.length} 人正在一起點` : "同桌要一起點嗎？"}</b><small>{groupForDisplay ? `代碼 ${groupForDisplay.code}・整桌 ${count} 份` : "每個人用自己的手機，整桌一次送出"}</small></div></div>{groupForDisplay ? <div className="group-live-bar-actions"><button onClick={() => setGroupDialog(true)} aria-label="查看團體資訊">查看</button><button onClick={shareGroup} aria-label="分享團體點餐"><ShareIcon/></button></div> : <button onClick={() => setGroupDialog(true)}>多人一起點</button>}</section>}
+    {mode === "order" && <section className={groupForDisplay ? "group-live-bar active" : "group-live-bar"}><div className="group-live-bar-main"><span><UsersIcon size={20}/></span><div><b>{groupForDisplay ? `${groupForDisplay.members.length} 人正在一起點` : "同桌要一起點嗎？"}</b><small>{groupForDisplay ? `桌號 ${groupForDisplay.tableNo}・掃 QR Code 加入` : "各自用手機選餐，最後由一人統一付款"}</small></div></div>{groupForDisplay ? <div className="group-live-bar-actions"><button onClick={() => setGroupDialog(true)} aria-label="顯示團體點餐 QR Code">顯示 QR</button><button onClick={shareGroup} aria-label="分享團體點餐"><ShareIcon/></button></div> : <button onClick={() => setGroupDialog(true)}>團體點餐</button>}</section>}
     {groupNotice && <p className="group-notice" role="status">{groupNotice}<button onClick={() => setGroupNotice("")} aria-label="關閉提示">關閉</button></p>}
     <div className="uber-search"><SearchIcon/><input id="tenant-menu-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜尋餐點、飲品或關鍵字"/></div>
     <nav className="uber-category-tabs">{categories.map((item) => <button className={category === item ? "active" : ""} onClick={() => setCategory(item)} key={item}>{item}</button>)}</nav>
     <div className="uber-service-status"><span>● 接單中</span><b>{mode === "order" ? "預計 15–20 分鐘送達" : "最早 17:30 取餐"}</b></div>
     <section className="uber-menu-content"><div className="uber-section-title"><div><p className="tenant-kicker">{query ? "搜尋結果" : "今天想吃什麼？"}</p><h1>{query ? `「${query}」` : category}</h1></div><span>{visible.length} 項</span></div>{visible.length ? <div className="uber-product-grid">{visible.map((product) => <article className={product.soldOut ? "sold-out" : ""} key={product.id}><button onClick={() => !product.soldOut && setDetail(product)}><div className="uber-product-photo"><ProductImage product={product}/>{product.badge && <span>{product.badge}</span>}<i aria-hidden="true">＋</i></div><div className="uber-product-copy"><h2>{product.name}</h2><b>{money(product.price)}</b>{product.availableNote && <small>{product.availableNote}</small>}<p>{product.description}</p></div></button></article>)}</div> : <div className="uber-empty"><b>找不到符合的餐點</b><p>可以換個關鍵字，或切換其他分類看看。</p><button onClick={() => setQuery("")}>清除搜尋</button></div>}</section>
     {count > 0 && <button className={groupForDisplay ? "uber-cart-dock group-cart-dock" : "uber-cart-dock"} onClick={() => setCheckout(true)}><span>{count}</span><b>{groupForDisplay ? `查看整桌・${groupForDisplay.members.length} 人` : "查看購物車"}</b><strong>{money(subtotal)}</strong></button>}
-    {detail && <ProductSheet product={detail} onClose={() => setDetail(null)} onAdd={(quantity, selections) => add(detail, quantity, selections)}/>}<GroupOrderDialog key={`${groupForDisplay?.code || groupInviteCode || "new"}-${defaultGroupName}`} open={groupDialog} group={groupForDisplay} defaultName={defaultGroupName} joinCode={groupInviteCode} loading={groupLoading} error={groupError} onClose={() => setGroupDialog(false)} onCreate={createGroup} onJoin={joinGroup} onShare={shareGroup}/>
+    {detail && <ProductSheet product={detail} onClose={() => setDetail(null)} onAdd={(quantity, selections) => add(detail, quantity, selections)}/>}<GroupOrderDialog key={`${groupForDisplay?.code || groupInviteCode || "new"}-${defaultGroupName}`} open={groupDialog} group={groupForDisplay} defaultName={defaultGroupName} joinCode={groupInviteCode} groupUrl={groupUrl} loading={groupLoading} error={groupError} onClose={() => setGroupDialog(false)} onCreate={createGroup} onJoin={joinGroup} onShare={shareGroup}/>
   </section></main>;
 }
 
