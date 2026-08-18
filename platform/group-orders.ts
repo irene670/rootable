@@ -5,6 +5,7 @@ export type GroupOrderItem = {
   quantity: number;
   unitPrice: number;
   optionLabel: string;
+  note: string;
   image: string;
 };
 
@@ -13,6 +14,7 @@ export type GroupOrderMember = {
   name: string;
   tokenHash: string;
   color: number;
+  note: string;
   items: GroupOrderItem[];
   joinedAt: string;
   lastSeenAt: string;
@@ -61,6 +63,7 @@ export async function createGroupMember(name: string, color = 0) {
     name: cleanMemberName(name),
     tokenHash: await hashGroupToken(token),
     color: Math.abs(color) % 6,
+    note: "",
     items: [],
     joinedAt: now,
     lastSeenAt: now,
@@ -75,6 +78,7 @@ export function publicGroupSession(session: GroupOrderSession): PublicGroupOrder
       id: member.id,
       name: member.name,
       color: member.color,
+      note: member.note || "",
       items: member.items,
       joinedAt: member.joinedAt,
       lastSeenAt: member.lastSeenAt,
@@ -106,6 +110,7 @@ export function normalizeGroupItems(items: unknown): GroupOrderItem[] {
       quantity,
       unitPrice,
       optionLabel: String(item.optionLabel || "").trim().slice(0, 120),
+      note: String(item.note || "").trim().slice(0, 120),
       image: String(item.image || "").trim().slice(0, 500),
     }];
   });

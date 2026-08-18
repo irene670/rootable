@@ -128,6 +128,10 @@ test("group ordering uses durable shared sessions and a host-controlled combined
   assert.match(storefront, /建立團體 QR Code/);
   assert.match(storefront, /api\.qrserver\.com/);
   assert.match(storefront, /掃描加入桌號/);
+  assert.match(storefront, /我的用餐備註/);
+  assert.match(storefront, /餐點備註/);
+  assert.match(storefront, /update_member_note/);
+  assert.match(storefront, /【\$\{item\.memberName\}】/);
   assert.match(storefront, /group-orders/);
   assert.match(storefront, /begin_checkout/);
   assert.match(storefront, /mark_submitted/);
@@ -136,6 +140,7 @@ test("group ordering uses durable shared sessions and a host-controlled combined
   assert.match(groupApi, /onlyIfMatch/);
   assert.match(groupApi, /findGroupMember/);
   assert.match(groupModel, /SHA-256/);
+  assert.match(groupModel, /note: String\(item\.note/);
   assert.doesNotMatch(groupModel, /tokenHash: member\.tokenHash/);
   assert.match(netlifyConfig, /\/api\/group-orders/);
 });

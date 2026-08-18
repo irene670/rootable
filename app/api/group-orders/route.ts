@@ -80,7 +80,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const payload = await request.json() as { code?: string; memberId?: string; token?: string; action?: string; items?: unknown; orderNo?: string };
+    const payload = await request.json() as { code?: string; memberId?: string; token?: string; action?: string; items?: unknown; memberNote?: string; orderNo?: string };
     const code = cleanGroupCode(String(payload.code || ""));
     if (!validGroupCode(code)) return json({ error: "團體代碼不正確" }, 400);
     const current = await readSession(code);
@@ -92,6 +92,10 @@ export async function PATCH(request: Request) {
     if (payload.action === "sync_cart") {
       if (session.status !== "active") return json({ error: "這桌正在結帳，暫時不能修改餐點" }, 409);
       session = { ...session, members: session.members.map((entry) => entry.id === member.id ? { ...entry, items: normalizeGroupItems(payload.items), lastSeenAt: now } : entry) };
+    } else if (payload.action === "update_member_note") {
+      if (session.status !== "active") return json({ error: "這桌正在結帳，暫時不能修改備註" }, 409);
+      const memberNote = String(payload.memberNote || "").trim().slice(0, 120);
+      session = { ...session, members: session.members.map((entry) => entry.id === member.id ? { ...entry, note: memberNote, lastSeenAt: now } : entry) };
     } else if (payload.action === "begin_checkout") {
       if (member.id !== session.hostMemberId) return json({ error: "只有發起人可以送出整桌訂單" }, 403);
       if (session.status !== "active") return json({ error: "這桌已在結帳或已送出" }, 409);
