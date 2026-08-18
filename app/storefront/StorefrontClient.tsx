@@ -7,7 +7,8 @@ import { cleanGroupCode, groupItemCount, groupSubtotal, type PublicGroupOrderSes
 import type { MenuProduct, ProductOption, Review, StoreRecord } from "../../platform/types";
 
 type RouteMode = "website" | "order" | "takeout" | "reserve";
-type Identity = { method: "line" | "phone"; label: string };
+type Identity = { method: "line" | "guest"; label: string };
+type OrderLanguage = "zh-TW" | "en";
 type Selection = Record<string, string[]>;
 type CartLine = { id: string; product: MenuProduct; quantity: number; selections: Selection; unitPrice: number; optionLabel: string };
 type CreatedOrder = { orderNo: string; subtotal: number; paymentStatus: string };
@@ -18,12 +19,12 @@ const formatOptions = (product: MenuProduct, selections: Selection) => product.o
 const optionPrice = (product: MenuProduct, selections: Selection) => product.optionGroups.flatMap((group) => group.options).filter((option) => Object.values(selections).flat().includes(option.id)).reduce((sum, option) => sum + option.price, 0);
 const CloseIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6l12 12M18 6 6 18"/></svg>;
 const SearchIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>;
-const HeartIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>;
 const DineInIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 3v7a3 3 0 0 0 3 3h1V3M7 3v6M9 3v6M8 13v8M16 3v18M16 3c3 1 4 4 4 7h-4"/></svg>;
-const TakeoutIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 8h14l-1 13H6L5 8Z"/><path d="M8 8a4 4 0 0 1 8 0M9 12h6"/></svg>;
-const ReserveIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 15h3M13 15h3"/></svg>;
 const TrashIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14"/></svg>;
 const UsersIcon = ({ size = 22 }: { size?: number }) => <svg aria-hidden="true" viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+const ArrowIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>;
+const GlobeIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>;
+const SparkIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="m12 3 1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4L12 3Z"/><path d="m18.5 14 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z"/></svg>;
 const ShareIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>;
 const CopyIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;
 const ProductImage = ({ product, className = "" }: { product: MenuProduct; className?: string }) => product.image ? <img className={className} src={product.image} alt={product.imageAlt}/> : <div className={`${className} menu-photo-placeholder`} role="img" aria-label={`${product.name}照片待補`}><span>照片待補</span></div>;
@@ -36,39 +37,33 @@ function StoreLoading({ failed = false }: { failed?: boolean }) {
   return <main className="tenant-mobile-shell storefront-loading" aria-live="polite"><section>{failed ? <><b>目前無法載入店家資料</b><p>請確認網路後重新整理頁面。</p><button className="tenant-primary" onClick={() => window.location.reload()}>重新載入</button></> : <><span className="loading-logo"/><span className="loading-line wide"/><span className="loading-line"/><div className="loading-grid"><i/><i/><i/><i/></div><p>正在準備店家菜單…</p></>}</section></main>;
 }
 
-function ScanStoreLanding({ store, mode, tableNo, onStart, onGroupStart }: { store: StoreRecord; mode: "order" | "takeout"; tableNo: string; onStart: () => void; onGroupStart: () => void }) {
-  const [favorited, setFavorited] = useState(false);
-  const preview = recommendedProducts(store.products);
-  const categories = Array.from(new Set(store.products.map((product) => product.category))).slice(0, 4);
-  return <main className="scan-store-shell" style={{ "--tenant-primary": store.profile.theme.primary, "--tenant-accent": store.profile.theme.accent } as React.CSSProperties}>
-    <section className="scan-store-page">
-      <div className="scan-store-hero"><img src={store.profile.coverImage} alt={`${store.profile.name}招牌餐點`}/><div className="scan-store-shade"/><nav><a href={`/s/${store.slug}`} aria-label="關閉並返回店家首頁"><CloseIcon/></a><div><button aria-label="搜尋餐點" onClick={onStart}><SearchIcon/></button><button className={favorited ? "favorited" : ""} aria-label={favorited ? "取消收藏店家" : "收藏店家"} aria-pressed={favorited} onClick={() => setFavorited((value) => !value)}><HeartIcon/></button></div></nav><div className="scan-store-hero-copy"><p>{store.profile.tagline}</p><span>今天想吃什麼？先看看店家的人氣餐點</span></div></div>
-      <div className="scan-store-logo" aria-hidden="true">{store.profile.logoText}</div>
-      <section className="scan-store-summary"><p className="scan-store-open">營業中・可接受點餐</p><h1>{store.profile.name}</h1><div className="scan-store-rating"><b>4.8 ★</b><span>（130+）</span><i>・</i><span>內用免服務費</span></div><p>{store.profile.announcement}</p></section>
-      <ol className="scan-order-steps" aria-label="掃碼點餐流程"><li className="active"><span>1</span><b>確認桌號</b></li><li><span>2</span><b>選擇餐點</b></li><li><span>3</span><b>付款送單</b></li></ol>
-      <section className="scan-service-picker" aria-label="用餐方式"><a className={mode === "order" ? "active" : ""} href={`/s/${store.slug}/order?table=${encodeURIComponent(tableNo)}`}><b><DineInIcon/></b><span>內用</span><small>{mode === "order" ? `桌號 ${tableNo}` : "掃碼點餐"}</small></a><a className={mode === "takeout" ? "active" : ""} href={`/s/${store.slug}/takeout`}><b><TakeoutIcon/></b><span>外帶</span><small>預約取餐</small></a><a href={`/s/${store.slug}/reserve`}><b><ReserveIcon/></b><span>訂位</span><small>線上預約</small></a></section>
-      <section className="scan-store-stats"><div><b>{mode === "order" ? tableNo : "最快 17:30"}</b><span>{mode === "order" ? "目前桌號" : "預約取餐"}</span></div><div><b>15–20 分鐘</b><span>預估出餐時間</span></div></section>
-      <section className="scan-menu-preview"><header><div><p>瀏覽菜單</p><h2>店內人氣餐點</h2></div><button onClick={onStart}>查看全部</button></header><nav aria-label="菜單分類"><button className="active">★ 精選</button>{categories.map((item) => <button key={item} onClick={onStart}>{item}</button>)}</nav><div>{preview.map((product, index) => <article key={product.id}><button onClick={onStart}><div><ProductImage product={product}/>{index < 2 && <span>人氣第 {index + 1} 名</span>}<i>＋</i></div><h3>{product.name}</h3><b>{money(product.price)}</b><p>{product.description}</p></button></article>)}</div></section>
-      {mode === "order" && <section className="scan-group-order"><div className="scan-group-icon"><UsersIcon size={26}/></div><div><p>多人聚餐不用再傳手機</p><h2>每個人各自點，整桌一起送出</h2><span>朋友可即時看見彼此餐點，由發起人統一結帳。</span></div><button onClick={onGroupStart}>開始團體點餐</button></section>}
-      <section className="scan-store-note"><b>點餐前提醒</b><p>{mode === "order" ? `本次為桌號 ${tableNo} 內用點餐。電子支付完成後會直接進入廚房；選擇現金則須先到櫃台付款。` : "外帶餐點依選擇時間製作，送出前仍可確認取餐時間與付款方式。"}</p></section>
-      <footer className="scan-start-dock"><div><span>{mode === "order" ? `內用・桌號 ${tableNo}` : "預約外帶"}</span><small>顧客免平台服務費</small></div><button onClick={onStart}>自己開始點餐</button></footer>
+function ScanStoreLanding({ store, mode, tableNo, language, onLanguageChange, onStart, onGroupStart }: { store: StoreRecord; mode: "order" | "takeout"; tableNo: string; language: OrderLanguage; onLanguageChange: (language: OrderLanguage) => void; onStart: () => void; onGroupStart: () => void }) {
+  const isEnglish = language === "en";
+  return <main className="qr-entry-shell" lang={language} style={{ "--tenant-primary": store.profile.theme.primary, "--tenant-accent": store.profile.theme.accent } as React.CSSProperties}>
+    <section className="qr-entry-page">
+      <header className="qr-entry-top"><a href={`/s/${store.slug}`} aria-label={isEnglish ? "Back to store" : "返回店家首頁"}><CloseIcon/></a><label><GlobeIcon/><span className="sr-only">{isEnglish ? "Language" : "語言選擇"}</span><select value={language} onChange={(event) => onLanguageChange(event.target.value as OrderLanguage)} aria-label={isEnglish ? "Language" : "語言選擇"}><option value="zh-TW">繁體中文</option><option value="en">English</option></select></label></header>
+      <div className="qr-entry-hero"><img src={store.profile.coverImage} alt={`${store.profile.name}${isEnglish ? " signature dishes" : "招牌餐點"}`}/><div/><span className="qr-entry-logo" aria-hidden="true">{store.profile.logoText}</span><p>{isEnglish ? "Welcome to" : "歡迎來到"}</p><h1>{store.profile.name}</h1><small>{isEnglish ? "Dine-in mobile ordering" : "桌邊手機點餐"}</small></div>
+      <section className="qr-table-confirm" aria-labelledby="qr-table-title"><span><DineInIcon/></span><div><p id="qr-table-title">{isEnglish ? "Your table" : "本次桌號"}</p><strong>{mode === "order" ? tableNo : isEnglish ? "Takeout" : "外帶"}</strong></div><em>{isEnglish ? "Confirmed" : "已確認"}</em></section>
+      <section className="qr-order-choice" aria-labelledby="qr-choice-title"><header><p>{isEnglish ? "How would you like to order?" : "請選擇點餐方式"}</p><h2 id="qr-choice-title">{isEnglish ? "Start your order" : "今天怎麼點？"}</h2></header>
+        <button className="qr-choice-card primary" onClick={onStart}><span><DineInIcon/></span><div><b>{isEnglish ? "Regular ordering" : "一般點餐"}</b><small>{isEnglish ? "Order and checkout on this phone" : "在這支手機選餐並完成結帳"}</small></div><ArrowIcon/></button>
+        {mode === "order" && <button className="qr-choice-card" onClick={onGroupStart}><span><UsersIcon size={24}/></span><div><b>{isEnglish ? "Group ordering" : "團體點餐"}</b><small>{isEnglish ? "Choose on separate phones, one person pays" : "個別手機選餐・由一人統一結帳"}</small></div><ArrowIcon/></button>}
+      </section>
+      <div className="qr-entry-trust"><span><SparkIcon/></span><p><b>{isEnglish ? "No customer service fee" : "顧客免平台服務費"}</b><small>{isEnglish ? "Cash or Rootable Pay available at checkout" : "結帳可選現金或 Rootable Pay"}</small></p></div>
+      <footer className="qr-entry-footer"><span>Powered by Rootable 森根</span><a href={`/s/${store.slug}`}>{isEnglish ? "Store information" : "查看店家資訊"}</a></footer>
     </section>
   </main>;
 }
 
-function IdentityGate({ onDone, storeName, storeSlug }: { onDone: (identity: Identity) => void; storeName: string; storeSlug: string }) {
-  const [phone, setPhone] = useState("");
-  const [method, setMethod] = useState<"line" | "phone" | "">("");
-  const validPhone = /^09\d{8}$/.test(phone.replace(/\D/g, ""));
-  return <main className="tenant-mobile-shell identity-shell"><section className="identity-card">
-    <a className="tenant-back" href={`/s/${storeSlug}`}>返回店家首頁</a>
-    <div className="tenant-logo">森</div><p className="tenant-kicker">{storeName}・開始點餐</p><h1>先留下聯絡方式</h1><p>用來確認訂單與取餐資訊。可選 LINE 或手機號碼，不會向顧客收取費用。</p>
-    <button className="line-login-button" onClick={() => { setMethod("line"); onDone({ method: "line", label: "LINE 顧客（模擬）" }); }}><span>LINE</span>使用 LINE 登入<small>試營運模擬，不會連到真實帳號</small></button>
-    <div className="identity-divider"><span>或</span></div>
-    <label htmlFor="customer-phone">輸入手機號碼</label><input id="customer-phone" inputMode="numeric" autoComplete="tel" placeholder="0912 345 678" value={phone} onChange={(event) => setPhone(event.target.value.slice(0, 12))}/>
-    <button className="tenant-primary" disabled={!validPhone} onClick={() => { setMethod("phone"); onDone({ method: "phone", label: phone.replace(/\D/g, "") }); }}>用手機號碼繼續</button>
-    <p className="identity-note">手機號碼目前不發送驗證碼。送出即同意試營運隱私與訂單聯絡規則。</p>
-    {method && <span className="sr-only">已選擇 {method}</span>}
+function IdentityGate({ onDone, onBack, storeName, language }: { onDone: (identity: Identity) => void; onBack: () => void; storeName: string; language: OrderLanguage }) {
+  const isEnglish = language === "en";
+  return <main className="tenant-mobile-shell identity-shell" lang={language}><section className="identity-card order-access-card">
+    <button className="identity-back-button" onClick={onBack}>{isEnglish ? "Back" : "返回點餐方式"}</button>
+    <div className="tenant-logo">森</div><p className="tenant-kicker">{storeName}・{isEnglish ? "Regular ordering" : "一般點餐"}</p><h1>{isEnglish ? "Choose how to continue" : "選擇進入方式"}</h1><p>{isEnglish ? "LINE login unlocks member rewards. Guest ordering stays fast and does not require an account." : "LINE 登入可以累積熟客優惠；也可以免登入直接點餐，不影響送單。"}</p>
+    <button className="line-login-button" onClick={() => onDone({ method: "line", label: "LINE 顧客（模擬）" })}><span>LINE</span>{isEnglish ? "Continue with LINE" : "使用 LINE 登入點餐"}<small>{isEnglish ? "Member rewards and easier order lookup" : "優惠入口・累積消費與查詢訂單"}</small></button>
+    <div className="line-benefits"><span><SparkIcon/></span><p><b>{isEnglish ? "New member reward" : "登入即享熟客優惠"}</b><small>{isEnglish ? "Demo reward: NT$30 off your next visit" : "示範優惠：下次消費可領 NT$30"}</small></p></div>
+    <div className="identity-divider"><span>{isEnglish ? "or" : "或"}</span></div>
+    <button className="guest-order-button" onClick={() => onDone({ method: "guest", label: "免登入顧客" })}><b>{isEnglish ? "Order as guest" : "免登入點餐"}</b><small>{isEnglish ? "No LINE account or phone number required" : "不需 LINE，也不用填手機號碼"}</small></button>
+    <p className="identity-note">{isEnglish ? "You can still connect LINE after checkout. This demo does not access a real LINE account." : "結帳完成後仍可選擇綁定 LINE。本 Demo 不會存取真實 LINE 帳號。"}</p>
   </section></main>;
 }
 
@@ -168,7 +163,10 @@ function GroupOrderDialog({ open, group, defaultName, joinCode, loading, error, 
 
 function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecord; mode: "order" | "takeout"; previewOrdering?: boolean }) {
   const [started, setStarted] = useState(previewOrdering);
-  const [identity, setIdentity] = useState<Identity | null>(previewOrdering ? { method: "phone", label: "店家預覽" } : null);
+  const [flowMode, setFlowMode] = useState<"general" | "group" | null>(previewOrdering ? "general" : null);
+  const [language, setLanguage] = useState<OrderLanguage>("zh-TW");
+  const [identity, setIdentity] = useState<Identity | null>(previewOrdering ? { method: "guest", label: "店家預覽" } : null);
+  const [postOrderLineLinked, setPostOrderLineLinked] = useState(false);
   const [category, setCategory] = useState("熱門推薦");
   const [query, setQuery] = useState("");
   const [detail, setDetail] = useState<MenuProduct | null>(null);
@@ -208,7 +206,7 @@ function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecor
       if (params.get("source") === "marketplace") setOrderSource("rootable_marketplace");
       const invite = cleanGroupCode(params.get("group") || "");
       if (mode === "order" && invite.length === 6) {
-        setStarted(true); setGroupInviteCode(invite); setGroupDialog(true);
+        setStarted(true); setFlowMode("group"); setIdentity({ method: "guest", label: "團體點餐顧客" }); setGroupInviteCode(invite); setGroupDialog(true);
         const membership = sessionStorage.getItem(`rootable-group-${store.slug}-${invite}`);
         if (membership) {
           try {
@@ -218,7 +216,12 @@ function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecor
         }
       }
       const savedIdentity = sessionStorage.getItem(`rootable-identity-${store.slug}`);
-      if (savedIdentity) setIdentity(JSON.parse(savedIdentity) as Identity);
+      if (savedIdentity) {
+        try {
+          const saved = JSON.parse(savedIdentity) as Identity;
+          if (saved.method === "line") setIdentity(saved);
+        } catch { sessionStorage.removeItem(`rootable-identity-${store.slug}`); }
+      }
       const savedCart = sessionStorage.getItem(`rootable-cart-${store.slug}-${mode}`);
       if (savedCart) {
         try { setCart(JSON.parse(savedCart) as CartLine[]); }
@@ -262,7 +265,7 @@ function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecor
   const count = groupForDisplay ? groupItemCount(groupForDisplay) : ownCount;
   const subtotal = groupForDisplay ? groupSubtotal(groupForDisplay) : ownSubtotal;
   const isGroupHost = Boolean(groupForDisplay?.members.find((member) => member.id === groupMemberId)?.isHost);
-  const defaultGroupName = identity?.method === "phone" ? `手機 ${identity.label.slice(-4)}` : identity?.method === "line" ? "LINE 顧客" : "";
+  const defaultGroupName = identity?.method === "line" ? "LINE 顧客" : "";
 
   const rememberGroup = (nextGroup: PublicGroupOrderSession, memberId: string, token: string) => {
     setGroup(nextGroup); setGroupMemberId(memberId); setGroupToken(token); setGroupInviteCode(nextGroup.code); setGroupError("");
@@ -342,13 +345,16 @@ function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecor
     } finally { setLoading(false); }
   };
 
-  if (!started) return <ScanStoreLanding store={store} mode={mode} tableNo={tableNo} onStart={() => setStarted(true)} onGroupStart={() => { setStarted(true); setGroupDialog(true); }}/>;
-  if (!identity) return <IdentityGate storeName={store.profile.name} storeSlug={store.slug} onDone={(value) => { sessionStorage.setItem(`rootable-identity-${store.slug}`, JSON.stringify(value)); setIdentity(value); }}/>;
+  if (!started) return <ScanStoreLanding store={store} mode={mode} tableNo={tableNo} language={language} onLanguageChange={setLanguage} onStart={() => { setFlowMode("general"); setStarted(true); }} onGroupStart={() => { setFlowMode("group"); setIdentity({ method: "guest", label: "團體點餐顧客" }); setStarted(true); setGroupDialog(true); }}/>;
+  if (flowMode !== "group" && !identity) return <IdentityGate storeName={store.profile.name} language={language} onBack={() => { setStarted(false); setFlowMode(null); }} onDone={(value) => { if (value.method === "line") sessionStorage.setItem(`rootable-identity-${store.slug}`, JSON.stringify(value)); setIdentity(value); }}/>;
 
   const submittedGroup = groupForDisplay?.status === "submitted" ? groupForDisplay : null;
   if (created || submittedGroup) {
     const finalOrder = created || { orderNo: submittedGroup!.orderNo, subtotal: groupSubtotal(submittedGroup!), paymentStatus: "paid" };
-    return <main className="tenant-mobile-shell"><section className="tenant-success"><div aria-hidden="true">✓</div><p className="tenant-kicker">{submittedGroup ? `${submittedGroup.members.length} 人團體訂單` : "訂單已送出"}</p><h1>{created && payment === "cash" ? "請先到櫃台完成付款" : submittedGroup && !created ? "發起人已送出整桌訂單" : mode === "order" ? "餐點會送到桌邊" : "請依預約時間到店取餐"}</h1>{created && payment === "cash" && <div className="cash-next-step"><b>下一步：向店員出示訂單編號</b><span>店員確認收款後，訂單才會送入廚房開始製作。</span></div>}<dl><div><dt>訂單編號</dt><dd>{finalOrder.orderNo}</dd></div><div><dt>{mode === "order" ? "桌號" : "取餐時間"}</dt><dd>{mode === "order" ? tableNo : pickupTime}</dd></div><div><dt>點餐方式</dt><dd>{submittedGroup ? `團體點餐・${submittedGroup.members.length} 人` : "單人點餐"}</dd></div><div><dt>金額</dt><dd>{money(finalOrder.subtotal)}</dd></div></dl><p>付款、通知與退款皆為試營運模擬，不會產生真實扣款。</p><a className="tenant-primary" href={`/s/${store.slug}`}>回店家首頁</a></section></main>;
+    const hasLineIdentity = identity?.method === "line" || postOrderLineLinked;
+    return <main className="tenant-mobile-shell order-complete-shell"><section className="tenant-success"><div aria-hidden="true">✓</div><p className="tenant-kicker">{submittedGroup ? `${submittedGroup.members.length} 人團體訂單` : "訂單已送出"}</p><h1>{created && payment === "cash" ? "請先到櫃台完成付款" : submittedGroup && !created ? "發起人已送出整桌訂單" : mode === "order" ? "餐點會送到桌邊" : "請依預約時間到店取餐"}</h1>{created && payment === "cash" && <div className="cash-next-step"><b>下一步：向店員出示訂單編號</b><span>店員確認收款後，訂單才會送入廚房開始製作。</span></div>}<dl><div><dt>訂單編號</dt><dd>{finalOrder.orderNo}</dd></div><div><dt>{mode === "order" ? "桌號" : "取餐時間"}</dt><dd>{mode === "order" ? tableNo : pickupTime}</dd></div><div><dt>點餐方式</dt><dd>{submittedGroup ? `團體點餐・${submittedGroup.members.length} 人` : "一般點餐"}</dd></div><div><dt>金額</dt><dd>{money(finalOrder.subtotal)}</dd></div></dl>
+      {hasLineIdentity ? <section className="post-order-member linked" aria-live="polite"><span><SparkIcon/></span><div><b>{postOrderLineLinked ? "LINE 登入完成" : "本次消費已連結 LINE"}</b><p>已加入 {store.profile.name} 熟客紀錄，可接收訂單通知與下次優惠。</p></div></section> : <section className="post-order-member"><span><SparkIcon/></span><div><p className="member-eyebrow">送單成功・最後一步為選填</p><h2>用 LINE 留下這次消費</h2><p>登入後可查詢訂單、接收完成通知，並領取下次消費 NT$30 示範優惠。</p><button className="line-login-button compact" onClick={() => { const nextIdentity: Identity = { method: "line", label: "LINE 顧客（模擬）" }; sessionStorage.setItem(`rootable-identity-${store.slug}`, JSON.stringify(nextIdentity)); setIdentity(nextIdentity); setPostOrderLineLinked(true); }}><span>LINE</span>登入 LINE 並加入熟客<small>自願加入・不影響本次訂單</small></button><small>現在不登入也沒關係，訂單已經成功送出。</small></div></section>}
+      <p>付款、通知與退款皆為試營運模擬，不會產生真實扣款。</p><a className="tenant-primary" href={`/s/${store.slug}`}>完成並回店家首頁</a></section></main>;
   }
 
   if (checkout) return <main className="tenant-mobile-shell"><section className="tenant-checkout group-checkout"><header><button onClick={() => setCheckout(false)}>返回</button><div><b>{groupForDisplay ? "確認整桌餐點" : "確認訂單"}</b><span>{mode === "order" ? `內用・桌號 ${tableNo}` : `外帶・${pickupTime} 取餐`}</span></div></header><div className="tenant-checkout-body">

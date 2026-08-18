@@ -2024,3 +2024,50 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible 
   .ticket-items>div span { font-size:16px; }
   .ticket-items>div span small { font-size:11px; }
 }
+
+/* Customer QR decision flow — table first, then regular or shared ordering. */
+.qr-entry-shell { min-height:100dvh; padding:0; background:#e9ede9; color:#172d25; }
+.qr-entry-page { width:min(100%,520px); min-height:100dvh; margin:0 auto; padding:0 18px max(24px,env(safe-area-inset-bottom)); overflow:hidden; background:#fffdf9; box-shadow:0 0 42px rgb(20 55 43 / 10%); }
+.qr-entry-top { min-height:70px; padding-top:max(8px,env(safe-area-inset-top)); display:flex; align-items:center; justify-content:space-between; }
+.qr-entry-top>a { width:48px; height:48px; display:grid; place-items:center; border-radius:50%; background:#f0f2ee; color:#173e35; text-decoration:none; }
+.qr-entry-top label { min-height:48px; padding:0 11px; display:flex; align-items:center; gap:7px; border:1px solid #d5dcd6; border-radius:999px; background:#fff; color:#28483c; }
+.qr-entry-top select { min-height:44px; border:0; outline:0; background:transparent; color:inherit; font:inherit; font-size:14px; font-weight:800; cursor:pointer; }
+.qr-entry-hero { position:relative; min-height:190px; padding:76px 20px 20px; overflow:hidden; border-radius:22px; background:#173e35; color:#fff; }
+.qr-entry-hero>img,.qr-entry-hero>div { position:absolute; inset:0; width:100%; height:100%; }
+.qr-entry-hero>img { object-fit:cover; }
+.qr-entry-hero>div { background:linear-gradient(180deg,rgb(9 29 22 / 14%),rgb(8 31 23 / 88%)); }
+.qr-entry-logo { position:absolute; z-index:1; top:17px; left:18px; width:48px; height:48px; display:grid; place-items:center; border:2px solid rgb(255 255 255 / 70%); border-radius:15px 15px 15px 5px; background:var(--tenant-primary,#173e35); font-family:Georgia,serif; font-size:21px; font-weight:900; }
+.qr-entry-hero p,.qr-entry-hero h1,.qr-entry-hero small { position:relative; z-index:1; display:block; margin:0; }
+.qr-entry-hero p { color:#d9e8e0; font-size:12px; font-weight:800; }
+.qr-entry-hero h1 { margin-top:3px; font-size:28px; line-height:1.2; letter-spacing:-.04em; }
+.qr-entry-hero small { margin-top:7px; color:#f5d7ba; font-size:13px; }
+.qr-table-confirm { position:relative; z-index:2; min-height:88px; margin:-14px 12px 0; padding:14px; display:grid; grid-template-columns:48px minmax(0,1fr) auto; align-items:center; gap:12px; border:1px solid #d9e1da; border-radius:17px; background:#fff; box-shadow:0 10px 26px rgb(20 55 43 / 10%); }
+.qr-table-confirm>span { width:48px; height:48px; display:grid; place-items:center; border-radius:15px; background:#e4efe8; color:#173e35; }
+.qr-table-confirm>div { display:grid; gap:2px; }.qr-table-confirm p { margin:0; color:#617068; font-size:11px; font-weight:800; }.qr-table-confirm strong { font-size:26px; line-height:1; letter-spacing:-.03em; }
+.qr-table-confirm em { padding:6px 8px; border-radius:999px; background:#e6f3e9; color:#246b42; font-size:10px; font-style:normal; font-weight:900; }
+.qr-order-choice { margin-top:25px; }.qr-order-choice>header p,.qr-order-choice>header h2 { margin:0; }.qr-order-choice>header p { color:#617168; font-size:12px; font-weight:800; }.qr-order-choice>header h2 { margin-top:2px; font-size:25px; letter-spacing:-.04em; }
+.qr-choice-card { width:100%; min-height:82px; margin-top:11px; padding:13px 14px; display:grid; grid-template-columns:52px minmax(0,1fr) 24px; align-items:center; gap:12px; border:1px solid #d7ded8; border-radius:17px; background:#fff; color:#17352b; text-align:left; box-shadow:0 5px 16px rgb(23 62 53 / 5%); cursor:pointer; transition:border-color 180ms ease,background 180ms ease,box-shadow 180ms ease; touch-action:manipulation; }
+.qr-choice-card>span { width:52px; height:52px; display:grid; place-items:center; border-radius:16px; background:#e7efe9; color:#173e35; }.qr-choice-card>div { display:grid; gap:4px; }.qr-choice-card b { font-size:17px; }.qr-choice-card small { color:#65736b; font-size:12px; line-height:1.4; }.qr-choice-card>svg { color:#557068; }
+.qr-choice-card.primary { border-color:#9ebcae; background:#f1f7f3; box-shadow:0 8px 22px rgb(23 62 53 / 9%); }.qr-choice-card.primary>span { background:#173e35; color:#fff; }
+.qr-choice-card:active { border-color:#6e9b86; background:#edf4ef; box-shadow:inset 0 0 0 2px rgb(23 62 53 / 7%); }
+.qr-choice-card:focus-visible,.qr-entry-top a:focus-visible,.qr-entry-top select:focus-visible { outline:3px solid var(--sun,#f4a35d); outline-offset:3px; }
+.qr-entry-trust { margin-top:16px; padding:13px; display:flex; align-items:center; gap:10px; border-radius:14px; background:#f5f2e9; color:#5d5b4f; }.qr-entry-trust>span { width:36px; height:36px; display:grid; place-items:center; flex:0 0 auto; border-radius:11px; background:#fff4df; color:#9b5b25; }.qr-entry-trust p { margin:0; display:grid; gap:2px; }.qr-entry-trust b { color:#4d4b42; font-size:12px; }.qr-entry-trust small { font-size:10px; line-height:1.4; }
+.qr-entry-footer { min-height:58px; margin-top:10px; display:flex; align-items:center; justify-content:space-between; gap:16px; color:#7b857f; font-size:10px; }.qr-entry-footer a { min-height:44px; display:flex; align-items:center; color:#315f4e; font-weight:850; }
+
+.order-access-card .tenant-logo { margin-bottom:12px; }.order-access-card h1 { font-size:28px; }.identity-back-button { min-height:44px; padding:0; border:0; background:transparent; color:#315d4e; font-size:13px; font-weight:850; cursor:pointer; }
+.line-benefits { margin-top:10px; padding:12px; display:flex; align-items:center; gap:9px; border-radius:12px; background:#eef8f1; color:#22613d; }.line-benefits>span { width:36px; height:36px; display:grid; place-items:center; flex:0 0 auto; border-radius:11px; background:#dff1e5; }.line-benefits p { margin:0; display:grid; gap:2px; }.line-benefits b { font-size:12px; }.line-benefits small { color:#52705f; font-size:10px; }
+.guest-order-button { width:100%; min-height:62px; padding:10px 14px; display:grid; gap:3px; border:1px solid #b9c8c0; border-radius:13px; background:#fff; color:#173e35; text-align:center; cursor:pointer; transition:background 180ms ease,border-color 180ms ease; }.guest-order-button b { font-size:15px; }.guest-order-button small { color:#66746c; font-size:10px; }.guest-order-button:active { border-color:#6e9985; background:#eff5f1; }.guest-order-button:focus-visible,.identity-back-button:focus-visible { outline:3px solid var(--sun,#f4a35d); outline-offset:3px; }
+
+.order-complete-shell { padding:24px 16px max(24px,env(safe-area-inset-bottom)); }.order-complete-shell .tenant-success { margin:0 auto; }
+.post-order-member { margin:18px 0 8px; padding:16px; display:flex; align-items:flex-start; gap:11px; border:1px solid #c9d9cf; border-radius:16px; background:#f2f7f3; color:#173e35; text-align:left; }.post-order-member>span { width:42px; height:42px; display:grid; place-items:center; flex:0 0 auto; border-radius:13px; background:#dfeee4; }.post-order-member>div { min-width:0; flex:1; }.post-order-member h2,.post-order-member p { margin:0; }.post-order-member h2 { margin-top:2px; font-size:18px; letter-spacing:-.025em; }.post-order-member p { margin-top:5px; color:#5f6f66; font-size:12px; line-height:1.55; }.post-order-member .member-eyebrow { margin:0; color:#367052; font-size:10px; font-weight:900; }.post-order-member>div>small { display:block; margin-top:9px; color:#728078; font-size:9px; line-height:1.45; text-align:center; }
+.post-order-member .line-login-button.compact { min-height:58px; margin-top:13px; font-size:13px; }.post-order-member.linked { align-items:center; border-color:#a9d0b7; background:#eaf6ee; }.post-order-member.linked b { font-size:14px; }
+
+@media (max-width:370px) {
+  .qr-entry-page { padding-right:13px; padding-left:13px; }.qr-entry-hero { min-height:174px; }.qr-table-confirm { margin-right:7px; margin-left:7px; }.qr-choice-card { padding-right:10px; padding-left:10px; grid-template-columns:48px minmax(0,1fr) 20px; gap:9px; }.qr-choice-card>span { width:48px; height:48px; }.qr-choice-card b { font-size:16px; }
+}
+@media (orientation:landscape) and (max-height:520px) {
+  .qr-entry-page { padding-bottom:16px; }.qr-entry-hero { min-height:148px; padding-top:64px; }.qr-entry-top { min-height:58px; }.qr-order-choice { margin-top:18px; }.qr-choice-card { min-height:70px; }.identity-shell { padding-top:12px; padding-bottom:12px; place-items:start center; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .qr-choice-card,.guest-order-button { transition:none; }
+}
