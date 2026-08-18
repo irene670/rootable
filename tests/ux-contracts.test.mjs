@@ -12,8 +12,25 @@ test("customer ordering keeps real-data loading, menu fallback, and cart safegua
   assert.match(source, /tenant-remove-line/);
   assert.match(source, /餐前付款/);
   assert.match(source, /window\.scrollTo\(\{ top: 0/);
+  assert.match(source, /setStore\(createSeedStore\(\)\)/);
+  assert.match(source, /掃碼點餐流程/);
   assert.doesNotMatch(source, /href="\/s\/senri"/);
   assert.doesNotMatch(source, /<b>⌑<\/b>|<b>▣<\/b>|<b>▤<\/b>/);
+});
+
+test("D1 storefront profiles remain durable and the seeded demo remains recoverable", async () => {
+  const [route, schema, storeSchema] = await Promise.all([
+    readFile(new URL("../app/api/stores/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
+    readFile(new URL("../db/stores.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(route, /export async function GET/);
+  assert.match(route, /export async function POST/);
+  assert.match(route, /export async function PATCH/);
+  assert.match(route, /source: "demo-fallback"/);
+  assert.match(route, /onConflictDoUpdate/);
+  assert.match(schema, /storeRecords/);
+  assert.match(storeSchema, /CREATE TABLE IF NOT EXISTS store_records/);
 });
 
 test("AI menu and merchant draft workflows preserve review and publishing boundaries", async () => {
@@ -88,6 +105,8 @@ test("merchant workbench includes a usable manual POS order flow", async () => {
   assert.match(pos, /LINE Pay/);
   assert.match(pos, /optionGroups/);
   assert.match(merchant, /<MerchantPos/);
+  assert.match(merchant, /即時桌況/);
+  assert.match(merchant, /點空桌可直接開單/);
   assert.match(orderApi, /isMerchantPos/);
 });
 

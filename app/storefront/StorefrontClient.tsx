@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-html-link-for-pages, @next/next/no-img-element, jsx-a11y/no-static-element-interactions -- Modal backdrop supports pointer dismissal; the explicit close button remains keyboard accessible. */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { seedReviews } from "../../platform/seed";
+import { createSeedStore, seedReviews } from "../../platform/seed";
 import { cleanGroupCode, groupItemCount, groupSubtotal, type PublicGroupOrderSession } from "../../platform/group-orders";
 import type { MenuProduct, ProductOption, Review, StoreRecord } from "../../platform/types";
 
@@ -45,6 +45,7 @@ function ScanStoreLanding({ store, mode, tableNo, onStart, onGroupStart }: { sto
       <div className="scan-store-hero"><img src={store.profile.coverImage} alt={`${store.profile.name}招牌餐點`}/><div className="scan-store-shade"/><nav><a href={`/s/${store.slug}`} aria-label="關閉並返回店家首頁"><CloseIcon/></a><div><button aria-label="搜尋餐點" onClick={onStart}><SearchIcon/></button><button className={favorited ? "favorited" : ""} aria-label={favorited ? "取消收藏店家" : "收藏店家"} aria-pressed={favorited} onClick={() => setFavorited((value) => !value)}><HeartIcon/></button></div></nav><div className="scan-store-hero-copy"><p>{store.profile.tagline}</p><span>今天想吃什麼？先看看店家的人氣餐點</span></div></div>
       <div className="scan-store-logo" aria-hidden="true">{store.profile.logoText}</div>
       <section className="scan-store-summary"><p className="scan-store-open">營業中・可接受點餐</p><h1>{store.profile.name}</h1><div className="scan-store-rating"><b>4.8 ★</b><span>（130+）</span><i>・</i><span>內用免服務費</span></div><p>{store.profile.announcement}</p></section>
+      <ol className="scan-order-steps" aria-label="掃碼點餐流程"><li className="active"><span>1</span><b>確認桌號</b></li><li><span>2</span><b>選擇餐點</b></li><li><span>3</span><b>付款送單</b></li></ol>
       <section className="scan-service-picker" aria-label="用餐方式"><a className={mode === "order" ? "active" : ""} href={`/s/${store.slug}/order?table=${encodeURIComponent(tableNo)}`}><b><DineInIcon/></b><span>內用</span><small>{mode === "order" ? `桌號 ${tableNo}` : "掃碼點餐"}</small></a><a className={mode === "takeout" ? "active" : ""} href={`/s/${store.slug}/takeout`}><b><TakeoutIcon/></b><span>外帶</span><small>預約取餐</small></a><a href={`/s/${store.slug}/reserve`}><b><ReserveIcon/></b><span>訂位</span><small>線上預約</small></a></section>
       <section className="scan-store-stats"><div><b>{mode === "order" ? tableNo : "最快 17:30"}</b><span>{mode === "order" ? "目前桌號" : "預約取餐"}</span></div><div><b>15–20 分鐘</b><span>預估出餐時間</span></div></section>
       <section className="scan-menu-preview"><header><div><p>瀏覽菜單</p><h2>店內人氣餐點</h2></div><button onClick={onStart}>查看全部</button></header><nav aria-label="菜單分類"><button className="active">★ 精選</button>{categories.map((item) => <button key={item} onClick={onStart}>{item}</button>)}</nav><div>{preview.map((product, index) => <article key={product.id}><button onClick={onStart}><div><ProductImage product={product}/>{index < 2 && <span>人氣第 {index + 1} 名</span>}<i>＋</i></div><h3>{product.name}</h3><b>{money(product.price)}</b><p>{product.description}</p></button></article>)}</div></section>
@@ -388,7 +389,16 @@ export default function StorefrontClient({ slug = "senri", mode = "website", pre
         const reviewResponse = await fetch(`/api/reviews?storeId=${encodeURIComponent(storeResult.store.storeId)}`);
         const reviewResult = reviewResponse.ok ? await reviewResponse.json() as { reviews?: Review[] } : {};
         if (!cancelled) setReviews(reviewResult.reviews || []);
-      } catch { if (!cancelled) setFailed(true); }
+      } catch {
+        if (cancelled) return;
+        if (slug === "senri") {
+          setStore(createSeedStore());
+          setReviews(seedReviews);
+          setFailed(false);
+        } else {
+          setFailed(true);
+        }
+      }
     };
     void load();
     return () => { cancelled = true; };

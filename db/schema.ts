@@ -37,3 +37,10 @@ export const groupOrders = sqliteTable("group_orders", {
   payload: text("payload").notNull(),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
+
+export const storeRecords = sqliteTable("store_records", {
+  storeId: text("store_id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  payload: text("payload").notNull(),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [index("idx_store_records_slug").on(table.slug)]);

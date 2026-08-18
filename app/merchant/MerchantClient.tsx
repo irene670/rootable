@@ -130,6 +130,18 @@ export default function MerchantClient() {
     ready: orders.filter((order) => order.status === "ready").length,
     cash: orders.filter((order) => order.status === "awaiting_payment" && order.paymentMethod === "cash" && order.paymentStatus === "unpaid").length,
   }), [orders]);
+  const tableStates = useMemo(() => {
+    const tables = ["A01", "A02", "A03", "A04", "B01", "B02", "B03", "B04"];
+    const activeTableOrders = orders.filter((order) => !["completed", "cancelled"].includes(order.status));
+    return tables.map((tableNo) => {
+      const order = activeTableOrders.find((entry) => entry.tableNo === tableNo);
+      if (!order) return { tableNo, label: "空桌", tone: "empty", detail: "可帶位" };
+      if (order.paymentStatus !== "paid") return { tableNo, label: "待收現", tone: "cash", detail: money(order.subtotal) };
+      if (order.status === "ready") return { tableNo, label: "已上齊", tone: "ready", detail: "可結單" };
+      if (["accepted", "preparing"].includes(order.status)) return { tableNo, label: "用餐中", tone: "serving", detail: `${Math.max(0, Math.floor((now - new Date(order.createdAt).getTime()) / 60000))} 分鐘` };
+      return { tableNo, label: "已點餐", tone: "ordered", detail: "待接單" };
+    });
+  }, [orders, now]);
   const productionCounts = useMemo(() => {
     const totals = new Map<string, { name: string; remaining: number; tables: Set<string>; nextOrder: Order; nextItem: OrderItem }>();
     [...kitchenOrders].filter((order) => ["accepted", "preparing"].includes(order.status)).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).forEach((order) => order.items.forEach((item) => {
@@ -256,6 +268,11 @@ export default function MerchantClient() {
               <article className="metric-new"><span>待接單</span><b>{counts.new}</b><small>已付款訂單</small></article>
               <article><span>製作中</span><b>{counts.preparing}</b><small>廚房處理</small></article>
               <article className="metric-ready"><span>已全數出餐</span><b>{counts.ready}</b><small>等待結單</small></article>
+            </section>
+
+            <section className="table-state-strip" aria-label="即時桌況">
+              <header><div><p>即時桌況</p><h2>一眼找到需要處理的桌</h2></div><span>點空桌可直接開單</span></header>
+              <div>{tableStates.map((table) => <button className={`table-state ${table.tone}`} key={table.tableNo} onClick={() => { if (table.tone === "empty") setView("pos"); }}><strong>{table.tableNo}</strong><b>{table.label}</b><small>{table.detail}</small></button>)}</div>
             </section>
 
             {cashPendingOrders.length > 0 && (

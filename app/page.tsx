@@ -35,8 +35,8 @@ export default function Home() {
             不用換 POS，也不用先學複雜系統。顧客手機掃碼完成點餐，店家在平板立即接單；收現金或開通代支付，都能用同一套流程完成。
           </p>
           <div className="hero-actions">
-            <a className="button button-primary" href="/s/senri">查看店家網站</a>
-            <a className="button button-secondary" href="/start">免費建立我的店</a>
+            <a className="button button-primary" href="/s/senri/order?table=A03">體驗手機掃碼點餐</a>
+            <a className="button button-secondary" href="/merchant/orders">開啟店家營運台</a>
           </div>
           <div className="trust-row" aria-label="服務特色">
             <span>免費開店</span><span>現金訂單 0%</span><span>顧客免平台費</span>
@@ -66,6 +66,15 @@ export default function Home() {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="role-entry" aria-label="選擇 Rootable 體驗入口">
+        <header><p className="eyebrow">一套系統，三個現場角色</p><h2>不是把點餐頁做漂亮，而是讓每一筆訂單順利走完。</h2></header>
+        <div>
+          <a href="/s/senri/order?table=A03"><span>顧客手機</span><b>掃碼、一起點、付款</b><small>桌號自動帶入，餐點變體與多人訂單不必輪流傳手機。</small><em>開啟手機版 Demo</em></a>
+          <a href="/merchant/orders"><span>外場平板</span><b>開桌、收現、追桌況</b><small>櫃台手動開單與 QR 訂單進入同一條餐務流程。</small><em>開啟營運工作台</em></a>
+          <a href="/merchant/orders"><span>廚房出餐</span><b>看總量、分批上菜</b><small>先看現在總共要做幾份，再逐份核取、避免漏單。</small><em>查看餐務看板</em></a>
         </div>
       </section>
 

@@ -6,10 +6,10 @@
 
 ---
 
-**Project:** Rootable
+**Project:** Rootable 2.0
 **Generated:** 2026-08-17 09:27:34
 **Category:** Restaurant/Food Service
-**Design Dials:** Variance 5/10 (Balanced / Modern) | Motion 4/10 (Standard) | Density 7/10 (Standard)
+**Design Dials:** Variance 5/10 (Balanced / Modern) | Motion 3/10 (Subtle) | Density 7/10 (Standard)
 
 ---
 
@@ -176,6 +176,13 @@
 - **Conversion Strategy:** Show the phone ordering flow beside the tablet order console, then let visitors open both live product surfaces.
 - **CTA Placement:** Primary trial links in the hero, pricing, and final decision section.
 - **Section Order:** 1. Hero with phone/tablet product scene, 2. Four-step workflow, 3. Cash vs Rootable Pay pricing, 4. Ecosystem, 5. Trial CTA.
+
+### Product Architecture
+
+- **One order, one state model:** Customer QR ordering, merchant manual POS, cash approval, kitchen production, split serving, completion, and settlement must show the same order state rather than creating parallel flows.
+- **Role-first entry:** The homepage exposes working demos for customer phone, merchant tablet, and kitchen workflow before marketing detail.
+- **Operational calm:** Brand pages may use editorial imagery, but POS/KDS surfaces stay flat, dense, and status-led. Color always pairs with text.
+- **Resilient demo:** The seeded store remains usable when the profile service is temporarily unavailable; non-demo tenant failures must remain explicit.
 
 ---
 
