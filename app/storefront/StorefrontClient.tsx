@@ -1,8 +1,9 @@
 "use client";
 
 /* eslint-disable @next/next/no-html-link-for-pages, @next/next/no-img-element, jsx-a11y/no-static-element-interactions -- Modal backdrop supports pointer dismissal; the explicit close button remains keyboard accessible. */
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { seedReviews } from "../../platform/seed";
+import { cleanGroupCode, groupItemCount, groupSubtotal, type PublicGroupOrderSession } from "../../platform/group-orders";
 import type { MenuProduct, ProductOption, Review, StoreRecord } from "../../platform/types";
 
 type RouteMode = "website" | "order" | "takeout" | "reserve";
@@ -22,6 +23,9 @@ const DineInIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="24" 
 const TakeoutIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 8h14l-1 13H6L5 8Z"/><path d="M8 8a4 4 0 0 1 8 0M9 12h6"/></svg>;
 const ReserveIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 15h3M13 15h3"/></svg>;
 const TrashIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14"/></svg>;
+const UsersIcon = ({ size = 22 }: { size?: number }) => <svg aria-hidden="true" viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+const ShareIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>;
+const CopyIcon = () => <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;
 const ProductImage = ({ product, className = "" }: { product: MenuProduct; className?: string }) => product.image ? <img className={className} src={product.image} alt={product.imageAlt}/> : <div className={`${className} menu-photo-placeholder`} role="img" aria-label={`${product.name}照片待補`}><span>照片待補</span></div>;
 const recommendedProducts = (products: MenuProduct[]) => {
   const highlighted = products.filter((product) => product.featured || product.badge);
@@ -32,7 +36,7 @@ function StoreLoading({ failed = false }: { failed?: boolean }) {
   return <main className="tenant-mobile-shell storefront-loading" aria-live="polite"><section>{failed ? <><b>目前無法載入店家資料</b><p>請確認網路後重新整理頁面。</p><button className="tenant-primary" onClick={() => window.location.reload()}>重新載入</button></> : <><span className="loading-logo"/><span className="loading-line wide"/><span className="loading-line"/><div className="loading-grid"><i/><i/><i/><i/></div><p>正在準備店家菜單…</p></>}</section></main>;
 }
 
-function ScanStoreLanding({ store, mode, tableNo, onStart }: { store: StoreRecord; mode: "order" | "takeout"; tableNo: string; onStart: () => void }) {
+function ScanStoreLanding({ store, mode, tableNo, onStart, onGroupStart }: { store: StoreRecord; mode: "order" | "takeout"; tableNo: string; onStart: () => void; onGroupStart: () => void }) {
   const [favorited, setFavorited] = useState(false);
   const preview = recommendedProducts(store.products);
   const categories = Array.from(new Set(store.products.map((product) => product.category))).slice(0, 4);
@@ -44,8 +48,9 @@ function ScanStoreLanding({ store, mode, tableNo, onStart }: { store: StoreRecor
       <section className="scan-service-picker" aria-label="用餐方式"><a className={mode === "order" ? "active" : ""} href={`/s/${store.slug}/order?table=${encodeURIComponent(tableNo)}`}><b><DineInIcon/></b><span>內用</span><small>{mode === "order" ? `桌號 ${tableNo}` : "掃碼點餐"}</small></a><a className={mode === "takeout" ? "active" : ""} href={`/s/${store.slug}/takeout`}><b><TakeoutIcon/></b><span>外帶</span><small>預約取餐</small></a><a href={`/s/${store.slug}/reserve`}><b><ReserveIcon/></b><span>訂位</span><small>線上預約</small></a></section>
       <section className="scan-store-stats"><div><b>{mode === "order" ? tableNo : "最快 17:30"}</b><span>{mode === "order" ? "目前桌號" : "預約取餐"}</span></div><div><b>15–20 分鐘</b><span>預估出餐時間</span></div></section>
       <section className="scan-menu-preview"><header><div><p>瀏覽菜單</p><h2>店內人氣餐點</h2></div><button onClick={onStart}>查看全部</button></header><nav aria-label="菜單分類"><button className="active">★ 精選</button>{categories.map((item) => <button key={item} onClick={onStart}>{item}</button>)}</nav><div>{preview.map((product, index) => <article key={product.id}><button onClick={onStart}><div><ProductImage product={product}/>{index < 2 && <span>人氣第 {index + 1} 名</span>}<i>＋</i></div><h3>{product.name}</h3><b>{money(product.price)}</b><p>{product.description}</p></button></article>)}</div></section>
+      {mode === "order" && <section className="scan-group-order"><div className="scan-group-icon"><UsersIcon size={26}/></div><div><p>多人聚餐不用再傳手機</p><h2>每個人各自點，整桌一起送出</h2><span>朋友可即時看見彼此餐點，由發起人統一結帳。</span></div><button onClick={onGroupStart}>開始團體點餐</button></section>}
       <section className="scan-store-note"><b>點餐前提醒</b><p>{mode === "order" ? `本次為桌號 ${tableNo} 內用點餐。電子支付完成後會直接進入廚房；選擇現金則須先到櫃台付款。` : "外帶餐點依選擇時間製作，送出前仍可確認取餐時間與付款方式。"}</p></section>
-      <footer className="scan-start-dock"><div><span>{mode === "order" ? `內用・桌號 ${tableNo}` : "預約外帶"}</span><small>顧客免平台服務費</small></div><button onClick={onStart}>查看菜單並開始點餐</button></footer>
+      <footer className="scan-start-dock"><div><span>{mode === "order" ? `內用・桌號 ${tableNo}` : "預約外帶"}</span><small>顧客免平台服務費</small></div><button onClick={onStart}>自己開始點餐</button></footer>
     </section>
   </main>;
 }
@@ -125,6 +130,41 @@ function StoreWebsite({ store, reviews }: { store: StoreRecord; reviews: Review[
   </main>;
 }
 
+function GroupOrderDialog({ open, group, defaultName, joinCode, loading, error, onClose, onCreate, onJoin, onShare }: {
+  open: boolean;
+  group: PublicGroupOrderSession | null;
+  defaultName: string;
+  joinCode: string;
+  loading: boolean;
+  error: string;
+  onClose: () => void;
+  onCreate: (name: string) => void;
+  onJoin: (code: string, name: string) => void;
+  onShare: () => void;
+}) {
+  const [mode, setMode] = useState<"create" | "join">(joinCode ? "join" : "create");
+  const [name, setName] = useState(defaultName);
+  const [code, setCode] = useState(joinCode);
+  if (!open) return null;
+  return <div className="group-dialog-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="group-dialog" role="dialog" aria-modal="true" aria-labelledby="group-dialog-title">
+      <header><div className="group-dialog-heading"><span><UsersIcon/></span><div><p>同桌同步點餐</p><h2 id="group-dialog-title">{group ? `團體代碼 ${group.code}` : "一起點，各自選"}</h2></div></div><button onClick={onClose} aria-label="關閉團體點餐視窗"><CloseIcon/></button></header>
+      {group ? <>
+        <div className="group-live-summary"><div className="group-avatar-stack">{group.members.slice(0, 5).map((member) => <span className={`tone-${member.color}`} title={member.name} key={member.id}>{member.name.slice(0, 1)}</span>)}</div><div><b>{group.members.length} 人已加入</b><span>{groupItemCount(group)} 份餐點・{money(groupSubtotal(group))}</span></div><em>同步中</em></div>
+        <div className="group-code-card"><div><span>分享團體代碼</span><strong>{group.code}</strong></div><button onClick={onShare}><ShareIcon/>邀請朋友</button></div>
+        <div className="group-how"><b>朋友加入後會怎麼進行？</b><ol><li><span>1</span>每個人用自己的手機選餐</li><li><span>2</span>大家即時看見整桌內容</li><li><span>3</span>發起人確認後統一送單</li></ol></div>
+      </> : <>
+        <div className="group-mode-tabs" role="tablist" aria-label="團體點餐方式"><button className={mode === "create" ? "active" : ""} onClick={() => setMode("create")} role="tab" aria-selected={mode === "create"}>發起新團體</button><button className={mode === "join" ? "active" : ""} onClick={() => setMode("join")} role="tab" aria-selected={mode === "join"}>輸入代碼加入</button></div>
+        <div className="group-form"><label htmlFor="group-member-name">大家怎麼稱呼你？</label><input id="group-member-name" maxLength={12} value={name} onChange={(event) => setName(event.target.value)} placeholder="例如：小森" autoComplete="nickname"/>{mode === "join" && <><label htmlFor="group-code">六碼團體代碼</label><input id="group-code" className="group-code-input" inputMode="text" maxLength={6} value={code} onChange={(event) => setCode(cleanGroupCode(event.target.value))} placeholder="例如：ABC234" autoCapitalize="characters"/></>}</div>
+        <div className="group-dialog-benefits"><div><UsersIcon size={20}/><span><b>不用傳手機</b><small>每個人都能自己加口味備註</small></span></div><div><CopyIcon/><span><b>整桌不漏點</b><small>送出前依成員逐一確認</small></span></div></div>
+        <button className="group-primary" disabled={loading || !name.trim() || (mode === "join" && code.length !== 6)} onClick={() => mode === "create" ? onCreate(name) : onJoin(code, name)}>{loading ? "正在連接同桌…" : mode === "create" ? "建立團體並取得邀請代碼" : "加入這桌一起點"}</button>
+      </>}
+      {error && <p className="group-dialog-error" role="alert">{error}</p>}
+      <p className="group-dialog-note">團體點餐只合併本次桌號的餐點，付款仍由發起人最後確認。</p>
+    </section>
+  </div>;
+}
+
 function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecord; mode: "order" | "takeout"; previewOrdering?: boolean }) {
   const [started, setStarted] = useState(previewOrdering);
   const [identity, setIdentity] = useState<Identity | null>(previewOrdering ? { method: "phone", label: "店家預覽" } : null);
@@ -141,29 +181,194 @@ function OrderFlow({ store, mode, previewOrdering = false }: { store: StoreRecor
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [created, setCreated] = useState<CreatedOrder | null>(null);
-  useEffect(() => { if (previewOrdering) return; const timer = window.setTimeout(() => { const params = new URLSearchParams(window.location.search); const scanned = params.get("table"); if (scanned) setTableNo(scanned.slice(0, 12)); if (params.get("source") === "marketplace") setOrderSource("rootable_marketplace"); const saved = sessionStorage.getItem(`rootable-identity-${store.slug}`); if (saved) setIdentity(JSON.parse(saved) as Identity); const savedCart = sessionStorage.getItem(`rootable-cart-${store.slug}-${mode}`); if (savedCart) { try { setCart(JSON.parse(savedCart) as CartLine[]); } catch { sessionStorage.removeItem(`rootable-cart-${store.slug}-${mode}`); } } }, 0); return () => window.clearTimeout(timer); }, [mode, previewOrdering, store.slug]);
+  const [group, setGroup] = useState<PublicGroupOrderSession | null>(null);
+  const [groupDialog, setGroupDialog] = useState(false);
+  const [groupInviteCode, setGroupInviteCode] = useState("");
+  const [groupMemberId, setGroupMemberId] = useState("");
+  const [groupToken, setGroupToken] = useState("");
+  const [groupLoading, setGroupLoading] = useState(false);
+  const [groupError, setGroupError] = useState("");
+  const [groupNotice, setGroupNotice] = useState("");
+
+  const loadGroup = useCallback(async (code: string) => {
+    const response = await fetch(`/api/group-orders?code=${encodeURIComponent(code)}`, { cache: "no-store" });
+    const result = await response.json() as { group?: PublicGroupOrderSession; error?: string };
+    if (!response.ok || !result.group) throw new Error(result.error || "無法同步團體點餐");
+    setGroup(result.group);
+    return result.group;
+  }, []);
+
+  useEffect(() => {
+    if (previewOrdering) return;
+    const timer = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const scanned = params.get("table");
+      if (scanned) setTableNo(scanned.slice(0, 12));
+      if (params.get("source") === "marketplace") setOrderSource("rootable_marketplace");
+      const invite = cleanGroupCode(params.get("group") || "");
+      if (mode === "order" && invite.length === 6) {
+        setStarted(true); setGroupInviteCode(invite); setGroupDialog(true);
+        const membership = sessionStorage.getItem(`rootable-group-${store.slug}-${invite}`);
+        if (membership) {
+          try {
+            const saved = JSON.parse(membership) as { memberId: string; token: string };
+            setGroupMemberId(saved.memberId); setGroupToken(saved.token); void loadGroup(invite).catch(() => undefined);
+          } catch { sessionStorage.removeItem(`rootable-group-${store.slug}-${invite}`); }
+        }
+      }
+      const savedIdentity = sessionStorage.getItem(`rootable-identity-${store.slug}`);
+      if (savedIdentity) setIdentity(JSON.parse(savedIdentity) as Identity);
+      const savedCart = sessionStorage.getItem(`rootable-cart-${store.slug}-${mode}`);
+      if (savedCart) {
+        try { setCart(JSON.parse(savedCart) as CartLine[]); }
+        catch { sessionStorage.removeItem(`rootable-cart-${store.slug}-${mode}`); }
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadGroup, mode, previewOrdering, store.slug]);
+
   useEffect(() => { if (!previewOrdering) sessionStorage.setItem(`rootable-cart-${store.slug}-${mode}`, JSON.stringify(cart)); }, [cart, mode, previewOrdering, store.slug]);
   useEffect(() => { if (checkout) window.scrollTo({ top: 0, behavior: "auto" }); }, [checkout]);
+  useEffect(() => {
+    if (!group?.code) return;
+    const timer = window.setInterval(() => void loadGroup(group.code).catch(() => undefined), 2500);
+    return () => window.clearInterval(timer);
+  }, [group?.code, loadGroup]);
+  useEffect(() => {
+    if (!group?.code || !groupMemberId || !groupToken || group.status !== "active") return;
+    const timer = window.setTimeout(async () => {
+      const items = cart.map((line) => ({ id: line.id, productId: line.product.id, productName: line.product.name, quantity: line.quantity, unitPrice: line.unitPrice, optionLabel: line.optionLabel, image: line.product.image }));
+      const send = () => fetch("/api/group-orders", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: group.code, memberId: groupMemberId, token: groupToken, action: "sync_cart", items }) });
+      try {
+        let response = await send();
+        if (response.status === 409) { await new Promise((resolve) => window.setTimeout(resolve, 220)); response = await send(); }
+        const result = await response.json() as { group?: PublicGroupOrderSession };
+        if (response.ok && result.group) setGroup(result.group);
+      } catch { /* Local cart remains safe and retries on the next edit. */ }
+    }, 520);
+    return () => window.clearTimeout(timer);
+  }, [cart, group?.code, group?.status, groupMemberId, groupToken]);
+
   const recommended = useMemo(() => recommendedProducts(store.products), [store.products]);
   const categories = ["熱門推薦", ...Array.from(new Set(store.products.map((product) => product.category).filter(Boolean)))];
   const visible = store.products.filter((product) => (category === "熱門推薦" ? recommended.some((item) => item.id === product.id) : product.category === category) && `${product.name}${product.description}`.toLocaleLowerCase("zh-TW").includes(query.trim().toLocaleLowerCase("zh-TW")));
-  const count = cart.reduce((sum, line) => sum + line.quantity, 0);
-  const subtotal = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
-  const add = (product: MenuProduct, quantity: number, selections: Selection) => { const price = product.price + optionPrice(product, selections); setCart((current) => [...current, { id: crypto.randomUUID(), product, quantity, selections, unitPrice: price, optionLabel: formatOptions(product, selections) }]); setDetail(null); };
+  const ownCount = cart.reduce((sum, line) => sum + line.quantity, 0);
+  const ownSubtotal = cart.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+  const groupForDisplay = useMemo(() => group ? {
+    ...group,
+    members: group.members.map((member) => member.id === groupMemberId ? { ...member, items: cart.map((line) => ({ id: line.id, productId: line.product.id, productName: line.product.name, quantity: line.quantity, unitPrice: line.unitPrice, optionLabel: line.optionLabel, image: line.product.image })) } : member),
+  } : null, [cart, group, groupMemberId]);
+  const count = groupForDisplay ? groupItemCount(groupForDisplay) : ownCount;
+  const subtotal = groupForDisplay ? groupSubtotal(groupForDisplay) : ownSubtotal;
+  const isGroupHost = Boolean(groupForDisplay?.members.find((member) => member.id === groupMemberId)?.isHost);
+  const defaultGroupName = identity?.method === "phone" ? `手機 ${identity.label.slice(-4)}` : identity?.method === "line" ? "LINE 顧客" : "";
+
+  const rememberGroup = (nextGroup: PublicGroupOrderSession, memberId: string, token: string) => {
+    setGroup(nextGroup); setGroupMemberId(memberId); setGroupToken(token); setGroupInviteCode(nextGroup.code); setGroupError("");
+    sessionStorage.setItem(`rootable-group-${store.slug}-${nextGroup.code}`, JSON.stringify({ memberId, token }));
+    const url = new URL(window.location.href); url.searchParams.set("table", nextGroup.tableNo); url.searchParams.set("group", nextGroup.code); window.history.replaceState({}, "", url);
+  };
+  const createGroup = async (memberName: string) => {
+    setGroupLoading(true); setGroupError("");
+    try {
+      const response = await fetch("/api/group-orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create", storeId: store.storeId, storeSlug: store.slug, tableNo, memberName }) });
+      const result = await response.json() as { group?: PublicGroupOrderSession; memberId?: string; token?: string; error?: string };
+      if (!response.ok || !result.group || !result.memberId || !result.token) throw new Error(result.error || "無法建立團體點餐");
+      rememberGroup(result.group, result.memberId, result.token);
+    } catch (cause) { setGroupError(cause instanceof Error ? cause.message : "無法建立團體點餐"); }
+    finally { setGroupLoading(false); }
+  };
+  const joinGroup = async (code: string, memberName: string) => {
+    setGroupLoading(true); setGroupError("");
+    try {
+      const available = await loadGroup(code);
+      if (available.storeId !== store.storeId || available.tableNo !== tableNo) throw new Error("這個團體代碼不是目前店家或桌號");
+      const response = await fetch("/api/group-orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "join", code, memberName }) });
+      const result = await response.json() as { group?: PublicGroupOrderSession; memberId?: string; token?: string; error?: string };
+      if (!response.ok || !result.group || !result.memberId || !result.token) throw new Error(result.error || "無法加入團體點餐");
+      rememberGroup(result.group, result.memberId, result.token);
+    } catch (cause) { setGroupError(cause instanceof Error ? cause.message : "無法加入團體點餐"); }
+    finally { setGroupLoading(false); }
+  };
+  const shareGroup = async () => {
+    if (!groupForDisplay) return;
+    const url = new URL(window.location.href); url.searchParams.set("table", groupForDisplay.tableNo); url.searchParams.set("group", groupForDisplay.code);
+    try {
+      if (navigator.share) await navigator.share({ title: `${store.profile.name}・${groupForDisplay.tableNo} 團體點餐`, text: `輸入代碼 ${groupForDisplay.code}，一起選餐`, url: url.toString() });
+      else { await navigator.clipboard.writeText(url.toString()); setGroupNotice("邀請連結已複製"); }
+    } catch (cause) { if (!(cause instanceof DOMException && cause.name === "AbortError")) setGroupNotice("可直接分享畫面上的六碼代碼"); }
+  };
+
+  const add = (product: MenuProduct, quantity: number, selections: Selection) => {
+    const price = product.price + optionPrice(product, selections);
+    setCart((current) => [...current, { id: crypto.randomUUID(), product, quantity, selections, unitPrice: price, optionLabel: formatOptions(product, selections) }]);
+    setDetail(null);
+  };
   const change = (id: string, delta: number) => setCart((current) => current.map((line) => line.id === id ? { ...line, quantity: Math.max(1, line.quantity + delta) } : line));
   const remove = (id: string) => setCart((current) => current.filter((line) => line.id !== id));
+  const patchGroup = async (action: string, extra: Record<string, unknown> = {}) => {
+    if (!groupForDisplay) throw new Error("找不到團體點餐");
+    const response = await fetch("/api/group-orders", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: groupForDisplay.code, memberId: groupMemberId, token: groupToken, action, ...extra }) });
+    const result = await response.json() as { group?: PublicGroupOrderSession; error?: string };
+    if (!response.ok || !result.group) throw new Error(result.error || "團體點餐更新失敗");
+    setGroup(result.group);
+    return result.group;
+  };
   const submit = async () => {
     setLoading(true); setError("");
+    let lockedGroup: PublicGroupOrderSession | null = null;
     try {
-      const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ storeId: store.storeId, tableNo: mode === "order" ? tableNo : `外帶 ${pickupTime}`, paymentMethod: payment === "cash" ? "cash" : "rootable_pay", paymentChannel: payment, orderSource, customerNote: `${identity?.label || ""}${note ? `｜${note}` : ""}`, items: cart.map((line) => ({ productId: line.product.id, productName: `${line.product.name}${line.optionLabel ? `（${line.optionLabel}）` : ""}`, quantity: line.quantity, unitPrice: line.unitPrice })) }) });
-      const result = await response.json() as { order?: CreatedOrder; error?: string }; if (!response.ok || !result.order) throw new Error(result.error || "訂單送出失敗"); sessionStorage.removeItem(`rootable-cart-${store.slug}-${mode}`); setCreated(result.order);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "訂單服務暫時無法使用"); } finally { setLoading(false); }
+      if (groupForDisplay) {
+        const ownItems = cart.map((line) => ({ id: line.id, productId: line.product.id, productName: line.product.name, quantity: line.quantity, unitPrice: line.unitPrice, optionLabel: line.optionLabel, image: line.product.image }));
+        await patchGroup("sync_cart", { items: ownItems });
+        lockedGroup = await patchGroup("begin_checkout");
+      }
+      const orderItems = groupForDisplay && lockedGroup ? Array.from(lockedGroup.members.flatMap((member) => member.items).reduce((map, item) => {
+        const key = `${item.productId}|${item.productName}|${item.optionLabel}|${item.unitPrice}`;
+        const current = map.get(key);
+        map.set(key, current ? { ...current, quantity: current.quantity + item.quantity } : { productId: item.productId, productName: `${item.productName}${item.optionLabel ? `（${item.optionLabel}）` : ""}`, quantity: item.quantity, unitPrice: item.unitPrice });
+        return map;
+      }, new Map<string, { productId: string; productName: string; quantity: number; unitPrice: number }>()).values()) : cart.map((line) => ({ productId: line.product.id, productName: `${line.product.name}${line.optionLabel ? `（${line.optionLabel}）` : ""}`, quantity: line.quantity, unitPrice: line.unitPrice }));
+      const groupNote = lockedGroup ? `團體點餐 ${lockedGroup.members.length} 人：${lockedGroup.members.map((member) => member.name).join("、")}` : identity?.label || "";
+      const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ storeId: store.storeId, tableNo: mode === "order" ? tableNo : `外帶 ${pickupTime}`, paymentMethod: payment === "cash" ? "cash" : "rootable_pay", paymentChannel: payment, orderSource, customerNote: `${groupNote}${note ? `｜${note}` : ""}`, items: orderItems }) });
+      const result = await response.json() as { order?: CreatedOrder; error?: string };
+      if (!response.ok || !result.order) throw new Error(result.error || "訂單送出失敗");
+      if (lockedGroup) await patchGroup("mark_submitted", { orderNo: result.order.orderNo });
+      sessionStorage.removeItem(`rootable-cart-${store.slug}-${mode}`); setCart([]); setCreated(result.order);
+    } catch (cause) {
+      if (lockedGroup) void patchGroup("checkout_failed").catch(() => undefined);
+      setError(cause instanceof Error ? cause.message : "訂單服務暫時無法使用");
+    } finally { setLoading(false); }
   };
-  if (!started) return <ScanStoreLanding store={store} mode={mode} tableNo={tableNo} onStart={() => setStarted(true)}/>;
-  if (!identity) return <IdentityGate storeName={store.profile.name} storeSlug={store.slug} onDone={(value) => { sessionStorage.setItem(`rootable-identity-${store.slug}`, JSON.stringify(value)); setIdentity(value); }}/>
-  if (created) return <main className="tenant-mobile-shell"><section className="tenant-success"><div>✓</div><p className="tenant-kicker">訂單已送出</p><h1>{payment === "cash" ? "請先到櫃台完成付款" : mode === "order" ? "餐點會送到桌邊" : "請依預約時間到店取餐"}</h1>{payment === "cash" && <div className="cash-next-step"><b>下一步：向店員出示訂單編號</b><span>店員確認收款後，訂單才會送入廚房開始製作。</span></div>}<dl><div><dt>訂單編號</dt><dd>{created.orderNo}</dd></div><div><dt>{mode === "order" ? "桌號" : "取餐時間"}</dt><dd>{mode === "order" ? tableNo : pickupTime}</dd></div><div><dt>付款</dt><dd>{payment === "cash" ? "待櫃台收現" : `${payment === "line_pay" ? "LINE Pay" : "Apple Pay"} 模擬完成`}</dd></div><div><dt>金額</dt><dd>{money(created.subtotal)}</dd></div></dl><p>付款、通知與退款皆為試營運模擬，不會產生真實扣款。</p><a className="tenant-primary" href={`/s/${store.slug}`}>回店家首頁</a></section></main>;
-  if (checkout) return <main className="tenant-mobile-shell"><section className="tenant-checkout"><header><button onClick={() => setCheckout(false)}>返回</button><div><b>確認訂單</b><span>{mode === "order" ? `內用・桌號 ${tableNo}` : `外帶・${pickupTime} 取餐`}</span></div></header><div className="tenant-checkout-body"><section><h1>您的餐點</h1>{cart.map((line) => <article className="tenant-cart-line" key={line.id}><ProductImage className="tenant-cart-image" product={line.product}/><div><b>{line.product.name}</b><span>{line.optionLabel}</span><strong>{money(line.unitPrice)}</strong></div><div className="tenant-cart-actions"><div className="tenant-stepper"><button onClick={() => change(line.id, -1)} aria-label={`減少 ${line.product.name}`}>−</button><span>{line.quantity}</span><button onClick={() => change(line.id, 1)} aria-label={`增加 ${line.product.name}`}>＋</button></div><button className="tenant-remove-line" onClick={() => remove(line.id)} aria-label={`移除 ${line.product.name}`}><TrashIcon/></button></div></article>)}</section><section className="tenant-order-info"><h2>{mode === "order" ? "桌號" : "取餐時間"}</h2>{mode === "order" ? <input value={tableNo} onChange={(event) => setTableNo(event.target.value)} /> : <select value={pickupTime} onChange={(event) => setPickupTime(event.target.value)}>{["11:30", "12:00", "12:30", "17:30", "18:00", "18:30", "19:00"].map((time) => <option key={time}>{time}</option>)}</select>}<label>餐點備註<textarea maxLength={80} value={note} onChange={(event) => setNote(event.target.value)} placeholder="例如：不要香菜、餐具 2 份"/></label></section><fieldset className="tenant-payment"><legend>付款方式</legend>{[["cash", "櫃台付現", "送出後請先付款；店員確認後才開始製作"], ["line_pay", "LINE Pay", "Rootable 代支付・模擬"], ["apple_pay", "Apple Pay", "Rootable 代支付・模擬"]].map(([id, label, help]) => <button type="button" className={payment === id ? "selected" : ""} onClick={() => setPayment(id as typeof payment)} key={id}><span/><div><b>{label}</b><small>{help}</small></div><strong>{id === "cash" ? "餐前付款" : "立即付款"}</strong></button>)}</fieldset>{error && <p className="form-error">{error}</p>}</div><footer className="tenant-checkout-footer"><div><span>顧客服務費 NT$ 0</span><b>{money(subtotal)}</b></div><button className="tenant-primary" disabled={!cart.length || loading} onClick={submit}>{loading ? "正在送出…" : payment === "cash" ? "送出並前往櫃台付款" : `模擬支付 ${money(subtotal)}`}</button></footer></section></main>;
-  return <main className="tenant-mobile-shell"><section className="uber-menu-page" style={{ "--tenant-primary": store.profile.theme.primary, "--tenant-accent": store.profile.theme.accent } as React.CSSProperties}><header className="uber-menu-top"><a href={`/s/${store.slug}`} aria-label="返回店家首頁"><CloseIcon/></a><div><b>{store.profile.name}</b><span>{mode === "order" ? `內用・桌號 ${tableNo}` : "預約外帶"}</span></div><button aria-label="搜尋" onClick={() => document.getElementById("tenant-menu-search")?.focus()}><SearchIcon/></button></header><div className="uber-search"><input id="tenant-menu-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜尋餐點或飲品"/></div><nav className="uber-category-tabs">{categories.map((item) => <button className={category === item ? "active" : ""} onClick={() => setCategory(item)} key={item}>{item}</button>)}</nav><div className="uber-service-status"><span>接單中</span><b>{mode === "order" ? "預計 15–20 分鐘送達" : "最早 17:30 取餐"}</b></div><section className="uber-menu-content"><div className="uber-section-title"><div><p className="tenant-kicker">{query ? "搜尋結果" : "完整菜單"}</p><h1>{query ? `「${query}」` : category}</h1></div><span>{visible.length} 項</span></div>{visible.length ? <div className="uber-product-grid">{visible.map((product) => <article className={product.soldOut ? "sold-out" : ""} key={product.id}><button onClick={() => !product.soldOut && setDetail(product)}><div className="uber-product-photo"><ProductImage product={product}/>{product.badge && <span>{product.badge}</span>}<i>＋</i></div><h2>{product.name}</h2><b>{money(product.price)}</b>{product.availableNote && <small>{product.availableNote}</small>}<p>{product.description}</p></button></article>)}</div> : <div className="uber-empty"><b>找不到符合的餐點</b><p>可以換個關鍵字，或切換其他分類看看。</p><button onClick={() => setQuery("")}>清除搜尋</button></div>}</section>{count > 0 && <button className="uber-cart-dock" onClick={() => setCheckout(true)}><span>{count}</span><b>查看購物車</b><strong>{money(subtotal)}</strong></button>}{detail && <ProductSheet product={detail} onClose={() => setDetail(null)} onAdd={(quantity, selections) => add(detail, quantity, selections)}/>}</section></main>;
+
+  if (!started) return <ScanStoreLanding store={store} mode={mode} tableNo={tableNo} onStart={() => setStarted(true)} onGroupStart={() => { setStarted(true); setGroupDialog(true); }}/>;
+  if (!identity) return <IdentityGate storeName={store.profile.name} storeSlug={store.slug} onDone={(value) => { sessionStorage.setItem(`rootable-identity-${store.slug}`, JSON.stringify(value)); setIdentity(value); }}/>;
+
+  const submittedGroup = groupForDisplay?.status === "submitted" ? groupForDisplay : null;
+  if (created || submittedGroup) {
+    const finalOrder = created || { orderNo: submittedGroup!.orderNo, subtotal: groupSubtotal(submittedGroup!), paymentStatus: "paid" };
+    return <main className="tenant-mobile-shell"><section className="tenant-success"><div aria-hidden="true">✓</div><p className="tenant-kicker">{submittedGroup ? `${submittedGroup.members.length} 人團體訂單` : "訂單已送出"}</p><h1>{created && payment === "cash" ? "請先到櫃台完成付款" : submittedGroup && !created ? "發起人已送出整桌訂單" : mode === "order" ? "餐點會送到桌邊" : "請依預約時間到店取餐"}</h1>{created && payment === "cash" && <div className="cash-next-step"><b>下一步：向店員出示訂單編號</b><span>店員確認收款後，訂單才會送入廚房開始製作。</span></div>}<dl><div><dt>訂單編號</dt><dd>{finalOrder.orderNo}</dd></div><div><dt>{mode === "order" ? "桌號" : "取餐時間"}</dt><dd>{mode === "order" ? tableNo : pickupTime}</dd></div><div><dt>點餐方式</dt><dd>{submittedGroup ? `團體點餐・${submittedGroup.members.length} 人` : "單人點餐"}</dd></div><div><dt>金額</dt><dd>{money(finalOrder.subtotal)}</dd></div></dl><p>付款、通知與退款皆為試營運模擬，不會產生真實扣款。</p><a className="tenant-primary" href={`/s/${store.slug}`}>回店家首頁</a></section></main>;
+  }
+
+  if (checkout) return <main className="tenant-mobile-shell"><section className="tenant-checkout group-checkout"><header><button onClick={() => setCheckout(false)}>返回</button><div><b>{groupForDisplay ? "確認整桌餐點" : "確認訂單"}</b><span>{mode === "order" ? `內用・桌號 ${tableNo}` : `外帶・${pickupTime} 取餐`}</span></div></header><div className="tenant-checkout-body">
+    {groupForDisplay ? <section className="group-checkout-list"><header><div><span><UsersIcon size={20}/></span><div><h1>{groupForDisplay.members.length} 人一起點</h1><p>每個人的餐點都分開列出，送單前再確認一次。</p></div></div><button onClick={() => setGroupDialog(true)}><ShareIcon/>邀請</button></header>{groupForDisplay.members.map((member) => <div className="group-member-order" key={member.id}><div className="group-member-order-head"><span className={`tone-${member.color}`}>{member.name.slice(0, 1)}</span><div><b>{member.name}{member.isHost ? "・發起人" : ""}</b><small>{member.items.reduce((sum, item) => sum + item.quantity, 0)} 份・{money(member.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0))}</small></div>{member.id === groupMemberId && <em>我的餐點</em>}</div>{member.items.length ? member.items.map((item) => <article className="group-member-line" key={item.id}><img src={item.image || store.profile.coverImage} alt=""/><span><b>{item.productName}</b><small>{item.optionLabel || "標準選項"}</small></span><strong>×{item.quantity}<small>{money(item.unitPrice * item.quantity)}</small></strong></article>) : <p className="group-member-empty">還在選餐中</p>}</div>)}</section> : <section><h1>您的餐點</h1>{cart.map((line) => <article className="tenant-cart-line" key={line.id}><ProductImage className="tenant-cart-image" product={line.product}/><div><b>{line.product.name}</b><span>{line.optionLabel}</span><strong>{money(line.unitPrice)}</strong></div><div className="tenant-cart-actions"><div className="tenant-stepper"><button onClick={() => change(line.id, -1)} aria-label={`減少 ${line.product.name}`}>−</button><span>{line.quantity}</span><button onClick={() => change(line.id, 1)} aria-label={`增加 ${line.product.name}`}>＋</button></div><button className="tenant-remove-line" onClick={() => remove(line.id)} aria-label={`移除 ${line.product.name}`}><TrashIcon/></button></div></article>)}</section>}
+    {(!groupForDisplay || isGroupHost) && <><section className="tenant-order-info"><h2>{mode === "order" ? "桌號" : "取餐時間"}</h2>{mode === "order" ? <input value={tableNo} readOnly={Boolean(groupForDisplay)} onChange={(event) => setTableNo(event.target.value)} aria-label="桌號"/> : <select value={pickupTime} onChange={(event) => setPickupTime(event.target.value)}>{["11:30", "12:00", "12:30", "17:30", "18:00", "18:30", "19:00"].map((time) => <option key={time}>{time}</option>)}</select>}<label>整桌備註<textarea maxLength={80} value={note} onChange={(event) => setNote(event.target.value)} placeholder="例如：餐具 4 份、一起上菜"/></label></section><fieldset className="tenant-payment"><legend>統一付款方式</legend>{[["cash", "櫃台付現", "送出後請先付款；店員確認後才開始製作"], ["line_pay", "LINE Pay", "Rootable 代支付・模擬"], ["apple_pay", "Apple Pay", "Rootable 代支付・模擬"]].map(([id, label, help]) => <button type="button" className={payment === id ? "selected" : ""} onClick={() => setPayment(id as typeof payment)} key={id}><span/><div><b>{label}</b><small>{help}</small></div><strong>{id === "cash" ? "餐前付款" : "立即付款"}</strong></button>)}</fieldset></>}
+    {groupForDisplay && !isGroupHost && <section className="group-waiting-card"><UsersIcon size={24}/><div><h2>餐點會由發起人統一送出</h2><p>你仍可返回菜單調整自己的內容；同桌更新會自動同步。</p></div></section>}{error && <p className="form-error" role="alert">{error}</p>}
+  </div><footer className="tenant-checkout-footer"><div><span>{groupForDisplay ? `${groupForDisplay.members.length} 人・${count} 份` : "顧客服務費 NT$ 0"}</span><b>{money(subtotal)}</b></div>{groupForDisplay && !isGroupHost ? <button className="tenant-secondary group-back-menu" onClick={() => setCheckout(false)}>返回調整我的餐點</button> : <button className="tenant-primary" disabled={!count || loading || groupForDisplay?.status === "submitting"} onClick={submit}>{loading ? "正在送出整桌訂單…" : payment === "cash" ? "確認整桌並前往櫃台付款" : `模擬支付 ${money(subtotal)}`}</button>}</footer></section>
+    <GroupOrderDialog key={`${groupForDisplay?.code || groupInviteCode || "new"}-${defaultGroupName}`} open={groupDialog} group={groupForDisplay} defaultName={defaultGroupName} joinCode={groupInviteCode} loading={groupLoading} error={groupError} onClose={() => setGroupDialog(false)} onCreate={createGroup} onJoin={joinGroup} onShare={shareGroup}/>
+  </main>;
+
+  return <main className="tenant-mobile-shell"><section className="uber-menu-page" style={{ "--tenant-primary": store.profile.theme.primary, "--tenant-accent": store.profile.theme.accent } as React.CSSProperties}>
+    <header className="uber-menu-top"><a href={`/s/${store.slug}`} aria-label="返回店家首頁"><CloseIcon/></a><div><b>{store.profile.name}</b><span>{mode === "order" ? `內用・桌號 ${tableNo}` : "預約外帶"}</span></div><button aria-label="搜尋" onClick={() => document.getElementById("tenant-menu-search")?.focus()}><SearchIcon/></button></header>
+    {mode === "order" && <section className={groupForDisplay ? "group-live-bar active" : "group-live-bar"}><div className="group-live-bar-main"><span><UsersIcon size={20}/></span><div><b>{groupForDisplay ? `${groupForDisplay.members.length} 人正在一起點` : "同桌要一起點嗎？"}</b><small>{groupForDisplay ? `代碼 ${groupForDisplay.code}・整桌 ${count} 份` : "每個人用自己的手機，整桌一次送出"}</small></div></div>{groupForDisplay ? <div className="group-live-bar-actions"><button onClick={() => setGroupDialog(true)} aria-label="查看團體資訊">查看</button><button onClick={shareGroup} aria-label="分享團體點餐"><ShareIcon/></button></div> : <button onClick={() => setGroupDialog(true)}>多人一起點</button>}</section>}
+    {groupNotice && <p className="group-notice" role="status">{groupNotice}<button onClick={() => setGroupNotice("")} aria-label="關閉提示">關閉</button></p>}
+    <div className="uber-search"><SearchIcon/><input id="tenant-menu-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜尋餐點、飲品或關鍵字"/></div>
+    <nav className="uber-category-tabs">{categories.map((item) => <button className={category === item ? "active" : ""} onClick={() => setCategory(item)} key={item}>{item}</button>)}</nav>
+    <div className="uber-service-status"><span>● 接單中</span><b>{mode === "order" ? "預計 15–20 分鐘送達" : "最早 17:30 取餐"}</b></div>
+    <section className="uber-menu-content"><div className="uber-section-title"><div><p className="tenant-kicker">{query ? "搜尋結果" : "今天想吃什麼？"}</p><h1>{query ? `「${query}」` : category}</h1></div><span>{visible.length} 項</span></div>{visible.length ? <div className="uber-product-grid">{visible.map((product) => <article className={product.soldOut ? "sold-out" : ""} key={product.id}><button onClick={() => !product.soldOut && setDetail(product)}><div className="uber-product-photo"><ProductImage product={product}/>{product.badge && <span>{product.badge}</span>}<i aria-hidden="true">＋</i></div><div className="uber-product-copy"><h2>{product.name}</h2><b>{money(product.price)}</b>{product.availableNote && <small>{product.availableNote}</small>}<p>{product.description}</p></div></button></article>)}</div> : <div className="uber-empty"><b>找不到符合的餐點</b><p>可以換個關鍵字，或切換其他分類看看。</p><button onClick={() => setQuery("")}>清除搜尋</button></div>}</section>
+    {count > 0 && <button className={groupForDisplay ? "uber-cart-dock group-cart-dock" : "uber-cart-dock"} onClick={() => setCheckout(true)}><span>{count}</span><b>{groupForDisplay ? `查看整桌・${groupForDisplay.members.length} 人` : "查看購物車"}</b><strong>{money(subtotal)}</strong></button>}
+    {detail && <ProductSheet product={detail} onClose={() => setDetail(null)} onAdd={(quantity, selections) => add(detail, quantity, selections)}/>}<GroupOrderDialog key={`${groupForDisplay?.code || groupInviteCode || "new"}-${defaultGroupName}`} open={groupDialog} group={groupForDisplay} defaultName={defaultGroupName} joinCode={groupInviteCode} loading={groupLoading} error={groupError} onClose={() => setGroupDialog(false)} onCreate={createGroup} onJoin={joinGroup} onShare={shareGroup}/>
+  </section></main>;
 }
 
 export default function StorefrontClient({ slug = "senri", mode = "website", previewStore, previewOrdering = false }: { slug?: string; mode?: RouteMode; previewStore?: StoreRecord; previewOrdering?: boolean }) {

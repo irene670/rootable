@@ -75,3 +75,23 @@ test("cash orders are gated before kitchen and split serving is tracked per item
   assert.match(storefront, /店員確認收款後，訂單才會送入廚房/);
   assert.match(legacyMenu, /店員確認收款後才開始備餐/);
 });
+
+test("group ordering uses durable shared sessions and a host-controlled combined checkout", async () => {
+  const [storefront, groupApi, groupModel, netlifyConfig] = await Promise.all([
+    readFile(new URL("../app/storefront/StorefrontClient.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../netlify/functions/group-orders.ts", import.meta.url), "utf8"),
+    readFile(new URL("../platform/group-orders.ts", import.meta.url), "utf8"),
+    readFile(new URL("../netlify.toml", import.meta.url), "utf8"),
+  ]);
+  assert.match(storefront, /多人聚餐不用再傳手機/);
+  assert.match(storefront, /group-orders/);
+  assert.match(storefront, /begin_checkout/);
+  assert.match(storefront, /mark_submitted/);
+  assert.match(groupApi, /只有發起人/);
+  assert.match(groupApi, /rootable-group-orders/);
+  assert.match(groupApi, /onlyIfMatch/);
+  assert.match(groupApi, /findGroupMember/);
+  assert.match(groupModel, /SHA-256/);
+  assert.doesNotMatch(groupModel, /tokenHash: member\.tokenHash/);
+  assert.match(netlifyConfig, /\/api\/group-orders/);
+});

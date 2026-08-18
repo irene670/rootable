@@ -12,6 +12,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/group-orders"
+  to = "/.netlify/functions/group-orders"
+  status = 200
+
+[[redirects]]
   from = "/api/stores"
   to = "/.netlify/functions/stores"
   status = 200

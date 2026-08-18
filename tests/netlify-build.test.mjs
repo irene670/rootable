@@ -9,6 +9,7 @@ test("builds the Netlify SPA with multi-merchant routes and persistent functions
   await Promise.all([
     access(new URL("../netlify-dist/menu/chicken.jpg", import.meta.url)),
     access(new URL("../netlify/functions/orders.ts", import.meta.url)),
+    access(new URL("../netlify/functions/group-orders.ts", import.meta.url)),
     access(new URL("../netlify/functions/stores.ts", import.meta.url)),
     access(new URL("../netlify/functions/reservations.ts", import.meta.url)),
     access(new URL("../netlify/functions/reviews.ts", import.meta.url)),

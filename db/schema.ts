@@ -31,3 +31,9 @@ export const orderItems = sqliteTable("order_items", {
   servedQuantity: integer("served_quantity").notNull().default(0),
   unitPrice: integer("unit_price").notNull(),
 }, (table) => [index("idx_order_items_order_id").on(table.orderId)]);
+
+export const groupOrders = sqliteTable("group_orders", {
+  code: text("code").primaryKey(),
+  payload: text("payload").notNull(),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
