@@ -76,6 +76,21 @@ test("cash orders are gated before kitchen and split serving is tracked per item
   assert.match(legacyMenu, /店員確認收款後才開始備餐/);
 });
 
+test("merchant workbench includes a usable manual POS order flow", async () => {
+  const [pos, merchant, orderApi] = await Promise.all([
+    readFile(new URL("../app/merchant/MerchantPos.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/merchant/MerchantClient.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/orders/route.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(pos, /櫃台手動開單/);
+  assert.match(pos, /orderSource: "merchant_pos"/);
+  assert.match(pos, /收現並送單/);
+  assert.match(pos, /LINE Pay/);
+  assert.match(pos, /optionGroups/);
+  assert.match(merchant, /<MerchantPos/);
+  assert.match(orderApi, /isMerchantPos/);
+});
+
 test("group ordering uses durable shared sessions and a host-controlled combined checkout", async () => {
   const [storefront, groupApi, groupModel, netlifyConfig] = await Promise.all([
     readFile(new URL("../app/storefront/StorefrontClient.tsx", import.meta.url), "utf8"),

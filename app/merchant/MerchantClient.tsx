@@ -3,6 +3,9 @@
 /* eslint-disable @next/next/no-html-link-for-pages -- Native anchors avoid the deployed Vinext Link runtime crash. */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import MerchantPos from "./MerchantPos";
+import { createSeedStore } from "../../platform/seed";
+import type { MenuProduct } from "../../platform/types";
 
 type OrderItem = { id?: string | number; productName: string; quantity: number; servedQuantity?: number; unitPrice: number };
 type Order = {
@@ -18,12 +21,12 @@ type Order = {
   platformFee: number;
   merchantPayout: number;
   customerNote: string;
-  orderSource?: "direct" | "rootable_marketplace";
+  orderSource?: "direct" | "merchant_pos" | "rootable_marketplace";
   feeRate?: number;
   createdAt: string;
   items: OrderItem[];
 };
-type MerchantView = "live" | "completed" | "settlement";
+type MerchantView = "pos" | "live" | "completed" | "settlement";
 
 const labels: Record<string, string> = { awaiting_payment: "待收現", new: "待接單", accepted: "已接單", preparing: "上菜中", ready: "已全數出餐", completed: "已完成", cancelled: "已取消" };
 const nextAction: Record<string, { label: string; status: string }> = {
@@ -44,6 +47,7 @@ export default function MerchantClient() {
   const [storeId, setStoreId] = useState("senri-demo");
   const [storeName, setStoreName] = useState("森日小館");
   const [storeSlug, setStoreSlug] = useState("senri");
+  const [products, setProducts] = useState<MenuProduct[]>(() => createSeedStore().products);
   const [orders, setOrders] = useState<Order[]>([]);
   const [view, setView] = useState<MerchantView>("live");
   const [loading, setLoading] = useState(true);
@@ -74,8 +78,8 @@ export default function MerchantClient() {
       const slug = localStorage.getItem("rootable-merchant-slug") || new URLSearchParams(window.location.search).get("store") || "senri";
       try {
         const response = await fetch(`/api/stores?slug=${encodeURIComponent(slug)}`, { cache: "no-store" });
-        const result = await response.json() as { store?: { storeId: string; slug: string; profile: { name: string } } };
-        if (result.store) { setStoreId(result.store.storeId); setStoreName(result.store.profile.name); setStoreSlug(result.store.slug); }
+        const result = await response.json() as { store?: { storeId: string; slug: string; profile: { name: string }; products?: MenuProduct[] } };
+        if (result.store) { setStoreId(result.store.storeId); setStoreName(result.store.profile.name); setStoreSlug(result.store.slug); if (result.store.products?.length) setProducts(result.store.products); }
       } catch { /* The seeded demo stays available when the profile API is offline. */ }
     }, 0);
     return () => window.clearTimeout(timer);
@@ -156,7 +160,8 @@ export default function MerchantClient() {
   const renderOrder = (order: Order, history = false) => {
     const minutes = elapsedMinutes(order.createdAt);
     const marketplace = order.orderSource === "rootable_marketplace" || order.customerNote.startsWith("【平台導流】");
-    const visibleNote = order.customerNote.replace(/^【平台導流】/, "");
+    const manualPos = order.orderSource === "merchant_pos" || order.customerNote.startsWith("【櫃台開單】") || order.customerNote.startsWith("櫃台手動開單");
+    const visibleNote = order.customerNote.replace(/^(【平台導流】|【櫃台開單】)/, "");
     return (
       <article className={`kds-ticket status-${order.status} ${minutes >= 15 && !history ? "is-urgent" : ""}`} key={order.id}>
         <header className="ticket-header">
@@ -168,7 +173,7 @@ export default function MerchantClient() {
         <div className="ticket-flags">
           <span className={`status-badge status-${order.status}`}>{labels[order.status]}</span>
           <span className={`payment-badge ${order.paymentStatus}`}>{paymentLabel(order)}</span>
-          <span className={`source-badge ${marketplace ? "marketplace" : "direct"}`}>{marketplace ? "森藏導流・15%" : "店內直客"}</span>
+          <span className={`source-badge ${marketplace ? "marketplace" : manualPos ? "manual" : "direct"}`}>{marketplace ? "森藏導流・15%" : manualPos ? "櫃台手動開單" : "店內掃碼"}</span>
         </div>
 
         <div className="ticket-items">
@@ -213,7 +218,7 @@ export default function MerchantClient() {
     );
   };
 
-  const viewTitle = view === "live" ? "接單工作台" : view === "completed" ? "已完成訂單" : "代支付結算";
+  const viewTitle = view === "pos" ? "櫃台手動開單" : view === "live" ? "接單工作台" : view === "completed" ? "已完成訂單" : "代支付結算";
 
   return (
     <main className="merchant-page">
@@ -221,9 +226,10 @@ export default function MerchantClient() {
         <a className="brand merchant-brand" href="/"><span className="brand-mark">R</span><span>Rootable <b>森根</b></span></a>
         <div className="merchant-store"><span className="store-avatar">{storeName.slice(0, 1)}</span><div><b>{storeName}</b><small>{storeSlug}.rootable.tw・試營運店</small></div></div>
         <nav className="merchant-nav" aria-label="店家後台導覽">
-          <button className={view === "live" ? "active" : ""} onClick={() => setView("live")} aria-pressed={view === "live"}><span>01</span><div><b>接單工作台</b><small>{activeOrders.length} 張進行中</small></div></button>
-          <button className={view === "completed" ? "active" : ""} onClick={() => setView("completed")} aria-pressed={view === "completed"}><span>02</span><div><b>已完成</b><small>{completedOrders.length} 張訂單</small></div></button>
-          <button className={view === "settlement" ? "active" : ""} onClick={() => setView("settlement")} aria-pressed={view === "settlement"}><span>03</span><div><b>代支付結算</b><small>{payOrders.length} 筆交易</small></div></button>
+          <button className={view === "pos" ? "active" : ""} onClick={() => setView("pos")} aria-pressed={view === "pos"}><span>01</span><div><b>手動開單</b><small>櫃台／桌邊 POS</small></div></button>
+          <button className={view === "live" ? "active" : ""} onClick={() => setView("live")} aria-pressed={view === "live"}><span>02</span><div><b>接單工作台</b><small>{activeOrders.length} 張進行中</small></div></button>
+          <button className={view === "completed" ? "active" : ""} onClick={() => setView("completed")} aria-pressed={view === "completed"}><span>03</span><div><b>已完成</b><small>{completedOrders.length} 張訂單</small></div></button>
+          <button className={view === "settlement" ? "active" : ""} onClick={() => setView("settlement")} aria-pressed={view === "settlement"}><span>04</span><div><b>代支付結算</b><small>{payOrders.length} 筆交易</small></div></button>
         </nav>
         <div className="merchant-sidebar-status"><span className="sync-dot" />系統連線正常</div>
       </aside>
@@ -240,6 +246,8 @@ export default function MerchantClient() {
 
         {error && <p className="form-error dashboard-error" role="alert">{error}</p>}
         {notice && <p className="dashboard-notice" role="status"><span>{notice}</span><button onClick={() => setNotice("")} aria-label="關閉通知">關閉</button></p>}
+
+        {view === "pos" && <MerchantPos storeId={storeId} products={products} onError={setError} onCreated={(orderNo, destination) => { setNotice(`${destination} ${orderNo} 已由櫃台建立並送入待接單`); void loadOrders(true); setView("live"); }} />}
 
         {view === "live" && (
           <div className="live-workspace">

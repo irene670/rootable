@@ -8,6 +8,10 @@
 
 ## Overrides
 
+- Add a dedicated manual POS view beside the live-order board. Follow the iCHEF pattern of order context, menu, and current bill as three persistent zones; follow dudoo's clear dine-in/takeout and table-state controls.
+- Manual POS orders support table or takeout identity, party size, menu search, category filters, product modifiers, quantity changes, notes, and cash or simulated Rootable Pay checkout without sending staff into the customer-facing site.
+- Cash POS checkout means the staff member has already received cash, so the demo creates the order and immediately confirms payment before it enters the kitchen queue. Label this action explicitly as `收現並送單`.
+- Persist manual orders as the `merchant_pos` source and show that source on kitchen tickets; it remains a merchant-direct order with 0% cash or 3.9% Rootable Pay treatment.
 - Use three workflow columns: paid/pending, preparing/serving, and fully served. Keep oldest work visually prominent through elapsed time and urgency treatment.
 - Cash orders wait in a full-width counter approval gate above the kitchen board. They do not enter production counts or the pending kitchen column until staff confirms payment.
 - Every order item shows `served / ordered` quantity with 48px controls for serving one portion and undoing one portion. Serving the final portion moves the ticket to fully served automatically.
@@ -20,6 +24,8 @@
 
 ## Acceptance
 
+- Staff can create an inner-dining or takeout order from a phone or tablet, including required modifiers, and see it appear in the existing live-order queue.
+- The POS layout is three-zone on large tablets, two-stage on portrait tablets, and single-column with a fixed checkout action on phones.
 - Three columns are visible or horizontally reachable at tablet widths.
 - A ticket can advance through every state without opening a detail modal.
 - An unpaid cash order cannot be accepted or served, and confirming cash atomically moves it into the paid pending column.

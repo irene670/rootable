@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     const hydrated = await Promise.all(rows.map(async (order) => ({
       ...order,
       status: order.paymentMethod === "cash" && order.paymentStatus === "unpaid" && !["completed", "cancelled"].includes(order.status) ? "awaiting_payment" : order.status,
-      orderSource: order.customerNote.startsWith("【平台導流】") ? "rootable_marketplace" : "direct",
+      orderSource: order.customerNote.startsWith("【平台導流】") ? "rootable_marketplace" : order.customerNote.startsWith("【櫃台開單】") ? "merchant_pos" : "direct",
       feeRate: order.customerNote.startsWith("【平台導流】") ? 0.15 : order.paymentMethod === "rootable_pay" ? 0.039 : 0,
       items: await db.select().from(orderItems).where(eq(orderItems.orderId, order.id)),
     })));
@@ -42,6 +42,7 @@ export async function POST(request: Request) {
 
     const subtotal = items.reduce((sum, item) => sum + Number(item.unitPrice) * Number(item.quantity), 0);
     const isMarketplace = payload.orderSource === "rootable_marketplace";
+    const isMerchantPos = payload.orderSource === "merchant_pos";
     const feeRate = isMarketplace ? 0.15 : payload.paymentMethod === "rootable_pay" ? 0.039 : 0;
     const platformFee = Math.round(subtotal * feeRate);
     const id = crypto.randomUUID();
@@ -53,14 +54,14 @@ export async function POST(request: Request) {
       id, orderNo, storeId: payload.storeId || "senri-demo", tableNo: payload.tableNo.trim(), status: isPaid ? "new" : "awaiting_payment",
       paymentMethod: payload.paymentMethod!, paymentChannel: payload.paymentChannel!, paymentStatus: isPaid ? "paid" : "unpaid",
       settlementStatus: isPaid ? "pending" : "not_applicable", subtotal, platformFee,
-      merchantPayout: subtotal - platformFee, customerNote: `${isMarketplace ? "【平台導流】" : ""}${payload.customerNote?.trim() || ""}`,
+      merchantPayout: subtotal - platformFee, customerNote: `${isMarketplace ? "【平台導流】" : isMerchantPos ? "【櫃台開單】" : ""}${payload.customerNote?.trim() || ""}`,
       createdAt, updatedAt: createdAt,
     });
     await db.insert(orderItems).values(items.map((item) => ({
       orderId: id, productId: item.productId!, productName: item.productName!, quantity: Number(item.quantity), servedQuantity: 0, unitPrice: Number(item.unitPrice),
     })));
     const [order] = await db.select().from(orders).where(eq(orders.id, id));
-    return Response.json({ order: { ...order, orderSource: isMarketplace ? "rootable_marketplace" : "direct", feeRate, items } }, { status: 201 });
+    return Response.json({ order: { ...order, orderSource: isMarketplace ? "rootable_marketplace" : isMerchantPos ? "merchant_pos" : "direct", feeRate, items } }, { status: 201 });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "建立訂單失敗" }, { status: 500 });
   }
